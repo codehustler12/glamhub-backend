@@ -1,0 +1,175 @@
+{
+  "client": "Thunder Client",
+  "collectionName": "Glamhub API",
+  "dateExported": "2025-12-30",
+  "version": "1.1",
+  "folders": [],
+  "requests": [
+    {
+      "name": "Health Check",
+      "url": "http://localhost:5000/api/health",
+      "method": "GET",
+      "headers": [],
+      "body": {
+        "type": "none"
+      }
+    },
+    {
+      "name": "Register User",
+      "url": "http://localhost:5000/api/auth/register",
+      "method": "POST",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\",\n  \"phone\": \"1234567890\",\n  \"role\": \"user\"\n}"
+      }
+    },
+    {
+      "name": "Register Artist",
+      "url": "http://localhost:5000/api/auth/register",
+      "method": "POST",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"name\": \"Jane Artist\",\n  \"email\": \"jane@artist.com\",\n  \"password\": \"password123\",\n  \"phone\": \"9876543210\",\n  \"role\": \"artist\"\n}"
+      }
+    },
+    {
+      "name": "Login",
+      "url": "http://localhost:5000/api/auth/login",
+      "method": "POST",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\",\n  \"rememberMe\": false\n}"
+      }
+    },
+    {
+      "name": "Login with Remember Me",
+      "url": "http://localhost:5000/api/auth/login",
+      "method": "POST",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\",\n  \"rememberMe\": true\n}"
+      }
+    },
+    {
+      "name": "Get My Profile",
+      "url": "http://localhost:5000/api/auth/me",
+      "method": "GET",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer YOUR_TOKEN_HERE"
+        }
+      ],
+      "body": {
+        "type": "none"
+      }
+    },
+    {
+      "name": "Update Profile",
+      "url": "http://localhost:5000/api/auth/update-profile",
+      "method": "PUT",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer YOUR_TOKEN_HERE"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"name\": \"John Updated\",\n  \"phone\": \"1111111111\"\n}"
+      }
+    },
+    {
+      "name": "Update Password",
+      "url": "http://localhost:5000/api/auth/update-password",
+      "method": "PUT",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer YOUR_TOKEN_HERE"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"currentPassword\": \"password123\",\n  \"newPassword\": \"newpassword456\"\n}"
+      }
+    },
+    {
+      "name": "Forgot Password",
+      "url": "http://localhost:5000/api/auth/forgot-password",
+      "method": "POST",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"email\": \"john@example.com\"\n}"
+      }
+    },
+    {
+      "name": "Reset Password",
+      "url": "http://localhost:5000/api/auth/reset-password/YOUR_RESET_TOKEN_HERE",
+      "method": "POST",
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"password\": \"newpassword789\"\n}"
+      }
+    },
+    {
+      "name": "Logout",
+      "url": "http://localhost:5000/api/auth/logout",
+      "method": "POST",
+      "headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer YOUR_TOKEN_HERE"
+        }
+      ],
+      "body": {
+        "type": "none"
+      }
+    }
+  ]
+}
+
