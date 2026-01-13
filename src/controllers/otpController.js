@@ -329,6 +329,7 @@ exports.sendRegistrationOTP = async (req, res, next) => {
     const mongoose = require('mongoose');
     const tempUserId = new mongoose.Types.ObjectId();
 
+    
     // Save OTP
     await OTP.create({
       userId: tempUserId,
