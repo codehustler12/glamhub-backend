@@ -30,10 +30,29 @@ app.use('/api/otp', otpRoutes);
 
 // Health check route
 app.get('/api/health', (req, res) => {
-  res.status(200).json({
-    success: true,
+  const mongoose = require('mongoose');
+  const dbStatus = mongoose.connection.readyState;
+  
+  // MongoDB connection states: 0 = disconnected, 1 = connected, 2 = connecting, 3 = disconnecting
+  const dbStatusText = {
+    0: 'disconnected',
+    1: 'connected',
+    2: 'connecting',
+    3: 'disconnecting'
+  };
+
+  const isDbConnected = dbStatus === 1;
+  
+  res.status(isDbConnected ? 200 : 503).json({
+    success: isDbConnected,
     message: 'Glamhub API is running!',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    database: {
+      status: dbStatusText[dbStatus] || 'unknown',
+      connected: isDbConnected,
+      host: mongoose.connection.host || null,
+      name: mongoose.connection.name || null
+    }
   });
 });
 
