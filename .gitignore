@@ -27,3 +27,7 @@ build/
 *.tmp
 *.temp
 
+# Uploads (keep directory structure)
+uploads/*
+!uploads/.gitkeep
+!uploads/portfolio/.gitkeep
