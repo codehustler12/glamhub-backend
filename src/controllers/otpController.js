@@ -326,7 +326,8 @@ exports.sendRegistrationOTP = async (req, res, next) => {
     await OTP.deleteMany({ [type]: identifier, type });
 
     // Create temporary user ID for OTP storage
-    const tempUserId = require('mongoose').Types.ObjectId();
+    const mongoose = require('mongoose');
+    const tempUserId = new mongoose.Types.ObjectId();
 
     // Save OTP
     await OTP.create({
