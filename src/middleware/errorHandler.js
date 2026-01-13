@@ -40,6 +40,24 @@ const errorHandler = (err, req, res, next) => {
     error.message = message;
   }
 
+  // Multer errors (file upload)
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    const message = 'File too large. Maximum size is 5MB.';
+    error.statusCode = 400;
+    error.message = message;
+  }
+
+  if (err.code === 'LIMIT_FILE_COUNT') {
+    const message = 'Too many files. Maximum 10 images allowed.';
+    error.statusCode = 400;
+    error.message = message;
+  }
+
+  if (err.message && err.message.includes('Only image files are allowed')) {
+    error.statusCode = 400;
+    error.message = 'Only image files are allowed!';
+  }
+
   res.status(error.statusCode || 500).json({
     success: false,
     message: error.message || 'Server Error',

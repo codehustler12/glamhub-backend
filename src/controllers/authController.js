@@ -173,12 +173,27 @@ exports.getMe = async (req, res, next) => {
 // @access  Private
 exports.updateProfile = async (req, res, next) => {
   try {
+    // Check for validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation Error',
+        errors: errors.array()
+      });
+    }
+
     const fieldsToUpdate = {
       firstName: req.body.firstName,
       lastName: req.body.lastName,
       phone: req.body.phone,
       avatar: req.body.avatar,
-      email: req.body.email
+      email: req.body.email,
+      // Artist profile fields
+      city: req.body.city,
+      description: req.body.description,
+      hasStudio: req.body.hasStudio,
+      address: req.body.address
     };
 
     // Remove undefined fields

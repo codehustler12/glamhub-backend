@@ -1,0 +1,1461 @@
+{
+	"info": {
+		"_postman_id": "glamhub-api-collection",
+		"name": "Glamhub API - Production",
+		"description": "Glamhub Backend API Collection for Production Server",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Health Check",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://api.adwebtest.online/api/health",
+					"protocol": "http",
+					"host": [
+						"api",
+						"adwebtest",
+						"online"
+					],
+					"path": [
+						"api",
+						"health"
+					]
+				},
+				"description": "Check API and database connection status"
+			}
+		},
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Register User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"username\": \"johndoe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\",\n  \"phone\": \"1234567890\",\n  \"role\": \"user\",\n  \"agreeToPrivacyPolicy\": true\n}"
+						},
+						"url": {
+							"raw": "http://api.adwebtest.online/api/auth/register",
+							"protocol": "http",
+							"host": [
+								"api",
+								"adwebtest",
+								"online"
+							],
+							"path": [
+								"api",
+								"auth",
+								"register"
+							]
+						}
+					}
+				},
+				{
+					"name": "Register Artist",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Artist\",\n  \"username\": \"janeartist\",\n  \"email\": \"jane@artist.com\",\n  \"password\": \"password123\",\n  \"phone\": \"9876543210\",\n  \"role\": \"artist\",\n  \"agreeToPrivacyPolicy\": true\n}"
+						},
+						"url": {
+							"raw": "http://api.adwebtest.online/api/auth/register",
+							"protocol": "http",
+							"host": [
+								"api",
+								"adwebtest",
+								"online"
+							],
+							"path": [
+								"api",
+								"auth",
+								"register"
+							]
+						}
+					}
+				},
+				{
+					"name": "Login with Email",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.data && jsonData.data.token) {",
+									"        pm.environment.set(\"authToken\", jsonData.data.token);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\",\n  \"rememberMe\": false\n}"
+						},
+						"url": {
+							"raw": "http://api.adwebtest.online/api/auth/login",
+							"protocol": "http",
+							"host": [
+								"api",
+								"adwebtest",
+								"online"
+							],
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
+						},
+						"description": "Login with email. You can also use 'username' instead of 'email'. Provide either email OR username (not both)."
+					}
+				},
+				{
+					"name": "Login with Username",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.data && jsonData.data.token) {",
+									"        pm.environment.set(\"authToken\", jsonData.data.token);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"johndoe\",\n  \"password\": \"password123\",\n  \"rememberMe\": false\n}"
+						},
+						"url": {
+							"raw": "http://api.adwebtest.online/api/auth/login",
+							"protocol": "http",
+							"host": [
+								"api",
+								"adwebtest",
+								"online"
+							],
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
+						},
+						"description": "Login with username. You can also use 'email' instead of 'username'. Provide either email OR username (not both)."
+					}
+				},
+				{
+					"name": "Get My Profile",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://api.adwebtest.online/api/auth/me",
+							"protocol": "http",
+							"host": [
+								"api",
+								"adwebtest",
+								"online"
+							],
+							"path": [
+								"api",
+								"auth",
+								"me"
+							]
+						}
+					}
+				},
+				{
+					"name": "Update Profile",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Updated\",\n  \"phone\": \"1111111111\",\n  \"email\": \"john.updated@example.com\",\n  \"avatar\": \"https://example.com/avatar.jpg\",\n  \"city\": \"Belgrade, Serbia\",\n  \"description\": \"Professional makeup artist with 5+ years of experience\",\n  \"hasStudio\": true,\n  \"address\": \"Street, 11, City\"\n}"
+						},
+						"url": {
+							"raw": "http://api.adwebtest.online/api/auth/update-profile",
+							"protocol": "http",
+							"host": [
+								"api",
+								"adwebtest",
+								"online"
+							],
+							"path": [
+								"api",
+								"auth",
+								"update-profile"
+							]
+						}
+					}
+				},
+				{
+					"name": "Update Password",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"currentPassword\": \"password123\",\n  \"newPassword\": \"newpassword456\"\n}"
+						},
+						"url": {
+							"raw": "http://api.adwebtest.online/api/auth/update-password",
+							"protocol": "http",
+							"host": [
+								"api",
+								"adwebtest",
+								"online"
+							],
+							"path": [
+								"api",
+								"auth",
+								"update-password"
+							]
+						}
+					}
+				},
+				{
+					"name": "Forgot Password",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"john@example.com\"\n}"
+						},
+						"url": {
+							"raw": "http://api.adwebtest.online/api/auth/forgot-password",
+							"protocol": "http",
+							"host": [
+								"api",
+								"adwebtest",
+								"online"
+							],
+							"path": [
+								"api",
+								"auth",
+								"forgot-password"
+							]
+						},
+						"description": "You can use either 'email' OR 'username' (not both). Example with username: {\"username\": \"johndoe\"}"
+					}
+				},
+				{
+					"name": "Reset Password",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"password\": \"newpassword789\"\n}"
+						},
+						"url": {
+							"raw": "http://api.adwebtest.online/api/auth/reset-password/:token",
+							"protocol": "http",
+							"host": [
+								"api",
+								"adwebtest",
+								"online"
+							],
+							"path": [
+								"api",
+								"auth",
+								"reset-password",
+								":token"
+							],
+							"variable": [
+								{
+									"key": "token",
+									"value": "YOUR_RESET_TOKEN_HERE"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Check Username",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://api.adwebtest.online/api/auth/check-username/:username",
+							"protocol": "http",
+							"host": [
+								"api",
+								"adwebtest",
+								"online"
+							],
+							"path": [
+								"api",
+								"auth",
+								"check-username",
+								":username"
+							],
+							"variable": [
+								{
+									"key": "username",
+									"value": "johndoe"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "http://api.adwebtest.online/api/auth/logout",
+							"protocol": "http",
+							"host": [
+								"api",
+								"adwebtest",
+								"online"
+							],
+							"path": [
+								"api",
+								"auth",
+								"logout"
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "OTP",
+			"item": [
+				{
+					"name": "Send Registration OTP",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"type\": \"email\",\n  \"email\": \"user@example.com\"\n}"
+						},
+						"url": {
+							"raw": "http://api.adwebtest.online/api/otp/send-registration-otp",
+							"protocol": "http",
+							"host": [
+								"api",
+								"adwebtest",
+								"online"
+							],
+							"path": [
+								"api",
+								"otp",
+								"send-registration-otp"
+							]
+						}
+					}
+				},
+				{
+					"name": "Verify Registration OTP",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"type\": \"email\",\n  \"email\": \"user@example.com\",\n  \"otp\": \"123456\",\n  \"tempId\": \"YOUR_TEMP_ID_FROM_SEND_OTP_RESPONSE\"\n}"
+						},
+						"url": {
+							"raw": "http://api.adwebtest.online/api/otp/verify-registration-otp",
+							"protocol": "http",
+							"host": [
+								"api",
+								"adwebtest",
+								"online"
+							],
+							"path": [
+								"api",
+								"otp",
+								"verify-registration-otp"
+							]
+						}
+					}
+				},
+				{
+					"name": "Send Email OTP (Protected)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"user@example.com\"\n}"
+						},
+						"url": {
+							"raw": "http://api.adwebtest.online/api/otp/send-email",
+							"protocol": "http",
+							"host": [
+								"api",
+								"adwebtest",
+								"online"
+							],
+							"path": [
+								"api",
+								"otp",
+								"send-email"
+							]
+						}
+					}
+				},
+				{
+					"name": "Send Phone OTP (Protected)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"phone\": \"1234567890\",\n  \"countryCode\": \"+91\"\n}"
+						},
+						"url": {
+							"raw": "http://api.adwebtest.online/api/otp/send-phone",
+							"protocol": "http",
+							"host": [
+								"api",
+								"adwebtest",
+								"online"
+							],
+							"path": [
+								"api",
+								"otp",
+								"send-phone"
+							]
+						}
+					}
+				},
+				{
+					"name": "Verify OTP (Protected)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"otp\": \"123456\",\n  \"type\": \"email\"\n}"
+						},
+						"url": {
+							"raw": "http://api.adwebtest.online/api/otp/verify",
+							"protocol": "http",
+							"host": [
+								"api",
+								"adwebtest",
+								"online"
+							],
+							"path": [
+								"api",
+								"otp",
+								"verify"
+							]
+						}
+					}
+				},
+				{
+					"name": "Resend OTP (Protected)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"type\": \"email\"\n}"
+						},
+						"url": {
+							"raw": "http://api.adwebtest.online/api/otp/resend",
+							"protocol": "http",
+							"host": [
+								"api",
+								"adwebtest",
+								"online"
+							],
+							"path": [
+								"api",
+								"otp",
+								"resend"
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Artist",
+			"item": [
+				{
+					"name": "Dashboard",
+					"item": [
+						{
+							"name": "Get Dashboard Stats",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{authToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://api.adwebtest.online/api/artist/dashboard/stats?startDate=&endDate=",
+									"protocol": "http",
+									"host": [
+										"api",
+										"adwebtest",
+										"online"
+									],
+									"path": [
+										"api",
+										"artist",
+										"dashboard",
+										"stats"
+									],
+									"query": [
+										{
+											"key": "startDate",
+											"value": "",
+											"description": "Optional: YYYY-MM-DD"
+										},
+										{
+											"key": "endDate",
+											"value": "",
+											"description": "Optional: YYYY-MM-DD"
+										}
+									]
+								},
+								"description": "Get dashboard statistics: Total Revenue, Upcoming Appointments, Total Clients, Average Rating"
+							}
+						}
+					]
+				},
+				{
+					"name": "Appointments",
+					"item": [
+						{
+							"name": "Get All Appointments",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{authToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://api.adwebtest.online/api/artist/appointments?status=all&serviceType=all&page=1&limit=10",
+									"protocol": "http",
+									"host": [
+										"api",
+										"adwebtest",
+										"online"
+									],
+									"path": [
+										"api",
+										"artist",
+										"appointments"
+									],
+									"query": [
+										{
+											"key": "status",
+											"value": "all",
+											"description": "pending, confirmed, completed, cancelled, rejected, or all"
+										},
+										{
+											"key": "serviceType",
+											"value": "all",
+											"description": "makeup, hair, nail, facial, bridal, party, other, or all"
+										},
+										{
+											"key": "startDate",
+											"value": "",
+											"description": "Optional: YYYY-MM-DD"
+										},
+										{
+											"key": "endDate",
+											"value": "",
+											"description": "Optional: YYYY-MM-DD"
+										},
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "limit",
+											"value": "10"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Get Single Appointment",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{authToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://api.adwebtest.online/api/artist/appointments/:id",
+									"protocol": "http",
+									"host": [
+										"api",
+										"adwebtest",
+										"online"
+									],
+									"path": [
+										"api",
+										"artist",
+										"appointments",
+										":id"
+									],
+									"variable": [
+										{
+											"key": "id",
+											"value": "APPOINTMENT_ID_HERE"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Update Appointment Status",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{authToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"status\": \"confirmed\",\n  \"cancellationReason\": \"\"\n}"
+								},
+								"url": {
+									"raw": "http://api.adwebtest.online/api/artist/appointments/:id/status",
+									"protocol": "http",
+									"host": [
+										"api",
+										"adwebtest",
+										"online"
+									],
+									"path": [
+										"api",
+										"artist",
+										"appointments",
+										":id",
+										"status"
+									],
+									"variable": [
+										{
+											"key": "id",
+											"value": "APPOINTMENT_ID_HERE"
+										}
+									]
+								},
+								"description": "Update appointment status. Status: pending, confirmed, completed, cancelled, rejected"
+							}
+						}
+					]
+				},
+				{
+					"name": "Payments",
+					"item": [
+						{
+							"name": "Get Payment Stats",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{authToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://api.adwebtest.online/api/artist/payments/stats?period=all",
+									"protocol": "http",
+									"host": [
+										"api",
+										"adwebtest",
+										"online"
+									],
+									"path": [
+										"api",
+										"artist",
+										"payments",
+										"stats"
+									],
+									"query": [
+										{
+											"key": "period",
+											"value": "all",
+											"description": "all, month, or week"
+										}
+									]
+								},
+								"description": "Get payment statistics: Available Balance, Total Earned, Payouts in Transit"
+							}
+						},
+						{
+							"name": "Get All Transactions",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{authToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://api.adwebtest.online/api/artist/payments/transactions?type=all&status=all&page=1&limit=20",
+									"protocol": "http",
+									"host": [
+										"api",
+										"adwebtest",
+										"online"
+									],
+									"path": [
+										"api",
+										"artist",
+										"payments",
+										"transactions"
+									],
+									"query": [
+										{
+											"key": "type",
+											"value": "all",
+											"description": "deposit, withdrawal, refund, or all"
+										},
+										{
+											"key": "status",
+											"value": "all",
+											"description": "pending, succeeded, failed, cancelled, in_transit, or all"
+										},
+										{
+											"key": "startDate",
+											"value": "",
+											"description": "Optional: YYYY-MM-DD"
+										},
+										{
+											"key": "endDate",
+											"value": "",
+											"description": "Optional: YYYY-MM-DD"
+										},
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "limit",
+											"value": "20"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Request Withdrawal",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{authToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"amount\": 5000,\n  \"bankDetails\": {\n    \"bankName\": \"Banca Intesa AD\",\n    \"accountNumber\": \"1234567890\",\n    \"iban\": \"BA391290079401028494\"\n  },\n  \"description\": \"Withdrawal to bank account\"\n}"
+								},
+								"url": {
+									"raw": "http://api.adwebtest.online/api/artist/payments/withdraw",
+									"protocol": "http",
+									"host": [
+										"api",
+										"adwebtest",
+										"online"
+									],
+									"path": [
+										"api",
+										"artist",
+										"payments",
+										"withdraw"
+									]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "Reviews",
+					"item": [
+						{
+							"name": "Get Reviews",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://api.adwebtest.online/api/artist/reviews?artistId=:artistId&page=1&limit=10",
+									"protocol": "http",
+									"host": [
+										"api",
+										"adwebtest",
+										"online"
+									],
+									"path": [
+										"api",
+										"artist",
+										"reviews"
+									],
+									"query": [
+										{
+											"key": "artistId",
+											"value": "ARTIST_USER_ID_HERE",
+											"description": "Required if not authenticated"
+										},
+										{
+											"key": "rating",
+											"value": "",
+											"description": "Optional: Filter by rating (1-5)"
+										},
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "limit",
+											"value": "10"
+										}
+									]
+								},
+								"description": "Get reviews for artist. Public endpoint - use artistId query param or authenticate to get your own reviews."
+							}
+						},
+						{
+							"name": "Get Single Review",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://api.adwebtest.online/api/artist/reviews/:id",
+									"protocol": "http",
+									"host": [
+										"api",
+										"adwebtest",
+										"online"
+									],
+									"path": [
+										"api",
+										"artist",
+										"reviews",
+										":id"
+									],
+									"variable": [
+										{
+											"key": "id",
+											"value": "REVIEW_ID_HERE"
+										}
+									]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "Services",
+					"item": [
+				{
+					"name": "Create Service",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"serviceName\": \"Bridal Makeup\",\n  \"serviceDescription\": \"Complete bridal makeup package with trial\",\n  \"serviceType\": \"bridal\",\n  \"priceType\": \"fixed\",\n  \"price\": 2500,\n  \"currency\": \"AED\",\n  \"duration\": \"3h\",\n  \"addOns\": [\n    {\n      \"name\": \"Hair Styling\",\n      \"price\": 500\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "http://api.adwebtest.online/api/services",
+							"protocol": "http",
+							"host": [
+								"api",
+								"adwebtest",
+								"online"
+							],
+							"path": [
+								"api",
+								"services"
+							]
+						}
+					}
+				},
+				{
+					"name": "Get My Services",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://api.adwebtest.online/api/services",
+							"protocol": "http",
+							"host": [
+								"api",
+								"adwebtest",
+								"online"
+							],
+							"path": [
+								"api",
+								"services"
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Service by ID",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://api.adwebtest.online/api/services/:id",
+							"protocol": "http",
+							"host": [
+								"api",
+								"adwebtest",
+								"online"
+							],
+							"path": [
+								"api",
+								"services",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "SERVICE_ID_HERE"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Update Service",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"serviceName\": \"Updated Bridal Makeup\",\n  \"price\": 3000,\n  \"duration\": \"4h\"\n}"
+						},
+						"url": {
+							"raw": "http://api.adwebtest.online/api/services/:id",
+							"protocol": "http",
+							"host": [
+								"api",
+								"adwebtest",
+								"online"
+							],
+							"path": [
+								"api",
+								"services",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "SERVICE_ID_HERE"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Service",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "http://api.adwebtest.online/api/services/:id",
+							"protocol": "http",
+							"host": [
+								"api",
+								"adwebtest",
+								"online"
+							],
+							"path": [
+								"api",
+								"services",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "SERVICE_ID_HERE"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Services by Artist (Public)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://api.adwebtest.online/api/services/artist/:artistId",
+							"protocol": "http",
+							"host": [
+								"api",
+								"adwebtest",
+								"online"
+							],
+							"path": [
+								"api",
+								"services",
+								"artist",
+								":artistId"
+							],
+							"variable": [
+								{
+									"key": "artistId",
+									"value": "ARTIST_USER_ID_HERE"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Portfolio",
+			"item": [
+				{
+					"name": "Upload Portfolio Images",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "images",
+									"type": "file",
+									"src": [],
+									"description": "Upload multiple images (max 10)"
+								}
+							]
+						},
+						"url": {
+							"raw": "http://api.adwebtest.online/api/portfolio/upload",
+							"protocol": "http",
+							"host": [
+								"api",
+								"adwebtest",
+								"online"
+							],
+							"path": [
+								"api",
+								"portfolio",
+								"upload"
+							]
+						},
+						"description": "Upload portfolio images. Use form-data with key 'images' and select multiple files."
+					}
+				},
+				{
+					"name": "Get Portfolio Images",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://api.adwebtest.online/api/portfolio?artistId=:artistId",
+							"protocol": "http",
+							"host": [
+								"api",
+								"adwebtest",
+								"online"
+							],
+							"path": [
+								"api",
+								"portfolio"
+							],
+							"query": [
+								{
+									"key": "artistId",
+									"value": "ARTIST_USER_ID_HERE"
+								}
+							]
+						},
+						"description": "Get portfolio images. If authenticated, returns your own portfolio. Or use artistId query param for public view."
+					}
+				},
+				{
+					"name": "Get My Portfolio (Protected)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://api.adwebtest.online/api/portfolio",
+							"protocol": "http",
+							"host": [
+								"api",
+								"adwebtest",
+								"online"
+							],
+							"path": [
+								"api",
+								"portfolio"
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Portfolio Image",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "http://api.adwebtest.online/api/portfolio/:imageUrl",
+							"protocol": "http",
+							"host": [
+								"api",
+								"adwebtest",
+								"online"
+							],
+							"path": [
+								"api",
+								"portfolio",
+								":imageUrl"
+							],
+							"variable": [
+								{
+									"key": "imageUrl",
+									"value": "/uploads/portfolio/portfolio-1234567890-123456789.jpg"
+								}
+							]
+						},
+						"description": "Delete a portfolio image. Use the full image URL path from the upload response."
+					}
+				}
+			]
+		}
+	]
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://api.adwebtest.online/api",
+			"type": "string"
+		},
+		{
+			"key": "authToken",
+			"value": "",
+			"type": "string"
+		}
+	]
+}

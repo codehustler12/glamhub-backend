@@ -16,6 +16,7 @@ const {
   registerValidator,
   loginValidator
 } = require('../validators/authValidator');
+const { updateProfileValidator } = require('../validators/profileValidator');
 
 // Public routes
 router.post('/register', registerValidator, register);
@@ -27,7 +28,7 @@ router.get('/check-username/:username', checkUsername);
 // Protected routes
 router.post('/logout', protect, logout);
 router.get('/me', protect, getMe);
-router.put('/update-profile', protect, updateProfile);
+router.put('/update-profile', protect, updateProfileValidator, updateProfile);
 router.put('/update-password', protect, updatePassword);
 
 module.exports = router;

@@ -6,6 +6,10 @@ const errorHandler = require('./middleware/errorHandler');
 // Route imports
 const authRoutes = require('./routes/authRoutes');
 const otpRoutes = require('./routes/otpRoutes');
+const serviceRoutes = require('./routes/serviceRoutes');
+const portfolioRoutes = require('./routes/portfolioRoutes');
+const artistRoutes = require('./routes/artistRoutes');
+const path = require('path');
 
 const app = express();
 
@@ -24,9 +28,15 @@ app.use(express.urlencoded({ extended: true }));
 // Cookie parser
 app.use(cookieParser());
 
+// Serve static files (uploaded images)
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/otp', otpRoutes);
+app.use('/api/services', serviceRoutes);
+app.use('/api/portfolio', portfolioRoutes);
+app.use('/api/artist', artistRoutes);
 
 // Health check route
 app.get('/api/health', (req, res) => {

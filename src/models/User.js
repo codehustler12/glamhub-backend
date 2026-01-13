@@ -72,6 +72,31 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  // Artist Profile Fields
+  city: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  description: {
+    type: String,
+    trim: true,
+    maxlength: [500, 'Description cannot exceed 500 characters'],
+    default: ''
+  },
+  hasStudio: {
+    type: Boolean,
+    default: false
+  },
+  address: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  portfolioImages: [{
+    type: String,
+    default: []
+  }],
   resetPasswordToken: String,
   resetPasswordExpire: Date
 }, {
