@@ -42,7 +42,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"username\": \"johndoe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\",\n  \"phone\": \"1234567890\",\n  \"role\": \"user\",\n  \"agreeToPrivacyPolicy\": true\n}"
+							"raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"username\": \"johndoe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"user\",\n  \"agreeToPrivacyPolicy\": true\n}"
 						},
 						"url": {
 							"raw": "http://api.adwebtest.online/api/auth/register",
@@ -72,7 +72,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Artist\",\n  \"username\": \"janeartist\",\n  \"email\": \"jane@artist.com\",\n  \"password\": \"password123\",\n  \"phone\": \"9876543210\",\n  \"role\": \"artist\",\n  \"agreeToPrivacyPolicy\": true\n}"
+							"raw": "{\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Artist\",\n  \"username\": \"janeartist\",\n  \"email\": \"jane@artist.com\",\n  \"password\": \"password123\",\n  \"role\": \"artist\",\n  \"agreeToPrivacyPolicy\": true\n}"
 						},
 						"url": {
 							"raw": "http://api.adwebtest.online/api/auth/register",
