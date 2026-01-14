@@ -35,7 +35,14 @@ const userSchema = new mongoose.Schema({
   },
   phone: {
     type: String,
-    match: [/^[0-9]{10,15}$/, 'Please provide a valid phone number']
+    default: '',
+    validate: {
+      validator: function(v) {
+        // Only validate if phone is provided (not empty)
+        return !v || /^[0-9]{10,15}$/.test(v);
+      },
+      message: 'Please provide a valid phone number (10-15 digits)'
+    }
   },
   password: {
     type: String,
