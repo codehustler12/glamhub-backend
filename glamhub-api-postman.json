@@ -1442,6 +1442,317 @@
 					}
 				}
 			]
+		},
+		{
+			"name": "Client",
+			"item": [
+				{
+					"name": "Bookings",
+					"item": [
+						{
+							"name": "Get My Bookings",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{authToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://api.adwebtest.online/api/client/bookings?status=all&page=1&limit=10",
+									"protocol": "http",
+									"host": [
+										"api",
+										"adwebtest",
+										"online"
+									],
+									"path": [
+										"api",
+										"client",
+										"bookings"
+									],
+									"query": [
+										{
+											"key": "status",
+											"value": "all",
+											"description": "Filter by status: pending, confirmed, completed, cancelled, rejected, or all"
+										},
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "limit",
+											"value": "10"
+										}
+									]
+								},
+								"description": "Get all bookings for the authenticated client. Filter by status, pagination supported."
+							}
+						},
+						{
+							"name": "Get Single Booking",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{authToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://api.adwebtest.online/api/client/bookings/:id",
+									"protocol": "http",
+									"host": [
+										"api",
+										"adwebtest",
+										"online"
+									],
+									"path": [
+										"api",
+										"client",
+										"bookings",
+										":id"
+									],
+									"variable": [
+										{
+											"key": "id",
+											"value": "APPOINTMENT_ID_HERE"
+										}
+									]
+								},
+								"description": "Get detailed information about a specific booking."
+							}
+						}
+					]
+				},
+				{
+					"name": "Reviews",
+					"item": [
+						{
+							"name": "Get My Reviews",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{authToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://api.adwebtest.online/api/client/reviews?page=1&limit=10",
+									"protocol": "http",
+									"host": [
+										"api",
+										"adwebtest",
+										"online"
+									],
+									"path": [
+										"api",
+										"client",
+										"reviews"
+									],
+									"query": [
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "limit",
+											"value": "10"
+										}
+									]
+								},
+								"description": "Get all reviews written by the authenticated client."
+							}
+						},
+						{
+							"name": "Create Review",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{authToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"artistId\": \"ARTIST_ID_HERE\",\n  \"appointmentId\": \"APPOINTMENT_ID_HERE\",\n  \"rating\": 5,\n  \"categories\": {\n    \"professionalism\": 5,\n    \"communication\": 5,\n    \"punctuality\": 5,\n    \"value\": 5\n  },\n  \"comment\": \"I was blown away by the talent at GlamHub. My stylist created a stunning look for my engagement photos that I will cherish forever. Highly recommend!\"\n}"
+								},
+								"url": {
+									"raw": "http://api.adwebtest.online/api/client/reviews",
+									"protocol": "http",
+									"host": [
+										"api",
+										"adwebtest",
+										"online"
+									],
+									"path": [
+										"api",
+										"client",
+										"reviews"
+									]
+								},
+								"description": "Create a new review for an artist. appointmentId is optional but recommended for verified reviews."
+							}
+						}
+					]
+				},
+				{
+					"name": "Favorites",
+					"item": [
+						{
+							"name": "Get My Favorites",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{authToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://api.adwebtest.online/api/client/favorites?page=1&limit=10",
+									"protocol": "http",
+									"host": [
+										"api",
+										"adwebtest",
+										"online"
+									],
+									"path": [
+										"api",
+										"client",
+										"favorites"
+									],
+									"query": [
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "limit",
+											"value": "10"
+										}
+									]
+								},
+								"description": "Get all favorited artists for the authenticated client. Includes artist details, ratings, and pricing."
+							}
+						},
+						{
+							"name": "Add to Favorites",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{authToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"artistId\": \"ARTIST_ID_HERE\"\n}"
+								},
+								"url": {
+									"raw": "http://api.adwebtest.online/api/client/favorites",
+									"protocol": "http",
+									"host": [
+										"api",
+										"adwebtest",
+										"online"
+									],
+									"path": [
+										"api",
+										"client",
+										"favorites"
+									]
+								},
+								"description": "Add an artist to favorites."
+							}
+						},
+						{
+							"name": "Remove from Favorites",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{authToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "http://api.adwebtest.online/api/client/favorites/:artistId",
+									"protocol": "http",
+									"host": [
+										"api",
+										"adwebtest",
+										"online"
+									],
+									"path": [
+										"api",
+										"client",
+										"favorites",
+										":artistId"
+									],
+									"variable": [
+										{
+											"key": "artistId",
+											"value": "ARTIST_ID_HERE"
+										}
+									]
+								},
+								"description": "Remove an artist from favorites."
+							}
+						}
+					]
+				}
+			]
 		}
 	]
 		}

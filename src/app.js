@@ -9,6 +9,7 @@ const otpRoutes = require('./routes/otpRoutes');
 const serviceRoutes = require('./routes/serviceRoutes');
 const portfolioRoutes = require('./routes/portfolioRoutes');
 const artistRoutes = require('./routes/artistRoutes');
+const clientRoutes = require('./routes/clientRoutes');
 const path = require('path');
 
 const app = express();
@@ -37,6 +38,7 @@ app.use('/api/otp', otpRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/portfolio', portfolioRoutes);
 app.use('/api/artist', artistRoutes);
+app.use('/api/client', clientRoutes);
 
 // Health check route
 app.get('/api/health', (req, res) => {
