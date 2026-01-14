@@ -39,7 +39,10 @@ const userSchema = new mongoose.Schema({
     validate: {
       validator: function(v) {
         // Only validate if phone is provided (not empty)
-        return !v || /^[0-9]{10,15}$/.test(v);
+        if (!v || v.trim() === '') return true;
+        // Remove +, spaces, and dashes, then check if it's 10-15 digits
+        const cleaned = v.replace(/[\s+\-()]/g, '');
+        return /^[0-9]{10,15}$/.test(cleaned);
       },
       message: 'Please provide a valid phone number (10-15 digits)'
     }
