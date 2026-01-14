@@ -15,13 +15,13 @@ const {
 } = require('../controllers/appointmentController');
 const { updateStatusValidator } = require('../validators/appointmentValidator');
 
-// Payments
-const {
-  getPaymentStats,
-  getTransactions,
-  requestWithdrawal
-} = require('../controllers/paymentController');
-const { withdrawalValidator } = require('../validators/paymentValidator');
+// Payments - Commented out until payment controller functions are implemented
+// const {
+//   getPaymentStats,
+//   getTransactions,
+//   requestWithdrawal
+// } = require('../controllers/paymentController');
+// const { withdrawalValidator } = require('../validators/paymentValidator');
 
 // Reviews
 const {
@@ -37,10 +37,10 @@ router.get('/appointments', protect, getAppointments);
 router.get('/appointments/:id', protect, getAppointment);
 router.put('/appointments/:id/status', protect, updateStatusValidator, updateAppointmentStatus);
 
-// Payments
-router.get('/payments/stats', protect, getPaymentStats);
-router.get('/payments/transactions', protect, getTransactions);
-router.post('/payments/withdraw', protect, withdrawalValidator, requestWithdrawal);
+// Payments - Commented out until payment controller functions are implemented
+// router.get('/payments/stats', protect, getPaymentStats);
+// router.get('/payments/transactions', protect, getTransactions);
+// router.post('/payments/withdraw', protect, withdrawalValidator, requestWithdrawal);
 
 // Reviews
 router.get('/reviews', getReviews); // Can be public with artistId query
