@@ -22,7 +22,7 @@ const { updateProfileValidator } = require('../validators/profileValidator');
 router.post('/register', registerValidator, register);
 router.post('/login', loginValidator, login);
 router.post('/forgot-password', forgotPassword);
-router.post('/reset-password/:token', resetPassword);
+router.post('/reset-password', resetPassword);
 router.get('/check-username/:username', checkUsername);
 
 // Protected routes

@@ -1,5 +1,4 @@
 const User = require('../models/User');
-const crypto = require('crypto');
 const { validationResult } = require('express-validator');
 const sendToken = require('../utils/sendToken');
 
@@ -243,52 +242,85 @@ exports.updatePassword = async (req, res, next) => {
   }
 };
 
-// @desc    Forgot password - Generate reset token
+// @desc    Forgot password - Send OTP to email
 // @route   POST /api/auth/forgot-password
 // @access  Public
 exports.forgotPassword = async (req, res, next) => {
   try {
-    const { email, username } = req.body;
+    const { email } = req.body;
 
-    // Find user by email or username
-    let user;
-    if (email) {
-      user = await User.findOne({ email });
-    } else if (username) {
-      user = await User.findOne({ username });
-    }
-
-    if (!user) {
-      return res.status(404).json({
+    if (!email) {
+      return res.status(400).json({
         success: false,
-        message: 'No user found with this email/username'
+        message: 'Email is required'
       });
     }
 
-    // Generate reset token
-    const resetToken = crypto.randomBytes(32).toString('hex');
+    // Find user by email
+    const user = await User.findOne({ email });
 
-    // Hash token and save to database
-    user.resetPasswordToken = crypto
-      .createHash('sha256')
-      .update(resetToken)
-      .digest('hex');
+    if (!user) {
+      // Don't reveal if user exists for security
+      return res.status(200).json({
+        success: true,
+        message: 'If an account exists with this email, a verification code has been sent.'
+      });
+    }
 
-    // Set expire time (10 minutes)
-    user.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
+    // Import OTP utilities
+    const OTP = require('../models/OTP');
+    const { generateOTP, getOTPExpiry } = require('../utils/generateOTP');
+    const { sendOTPEmail } = require('../services/emailService');
 
-    await user.save({ validateBeforeSave: false });
+    // Check if there's a recent OTP (prevent spam)
+    const recentOTP = await OTP.findOne({
+      userId: user._id,
+      type: 'password_reset',
+      createdAt: { $gt: new Date(Date.now() - 60 * 1000) } // 1 minute cooldown
+    });
 
-    // In production, you would send this token via email
-    // For now, we'll return it in the response (for development)
-    const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
+    if (recentOTP) {
+      return res.status(429).json({
+        success: false,
+        message: 'Please wait 1 minute before requesting another code'
+      });
+    }
+
+    // Generate 4-digit OTP (as shown in UI)
+    const otp = generateOTP(4);
+    const expiresAt = getOTPExpiry(10); // 10 minutes
+
+    // Delete old password reset OTPs for this user
+    await OTP.deleteMany({ userId: user._id, type: 'password_reset' });
+
+    // Save new OTP
+    await OTP.create({
+      userId: user._id,
+      otp,
+      type: 'password_reset',
+      email: user.email,
+      expiresAt
+    });
+
+    // Send OTP via email
+    const userName = user.firstName || 'User';
+    const emailResult = await sendOTPEmail(user.email, otp, userName);
+
+    if (!emailResult.success) {
+      // Still return success to not reveal if user exists
+      console.error('Failed to send password reset OTP:', emailResult.error);
+      return res.status(200).json({
+        success: true,
+        message: 'If an account exists with this email, a verification code has been sent.'
+      });
+    }
 
     res.status(200).json({
       success: true,
-      message: 'Password reset token generated. Check your email.',
+      message: 'Verification code sent to your email',
       data: {
-        resetToken: resetToken,
-        resetUrl: resetUrl
+        email: email.replace(/(.{2})(.*)(@.*)/, '$1***$3'), // Mask email
+        expiresIn: '10 minutes'
       }
     });
   } catch (error) {
@@ -296,38 +328,76 @@ exports.forgotPassword = async (req, res, next) => {
   }
 };
 
-// @desc    Reset password using token
-// @route   POST /api/auth/reset-password/:token
+// @desc    Verify OTP and reset password
+// @route   POST /api/auth/reset-password
 // @access  Public
 exports.resetPassword = async (req, res, next) => {
   try {
-    const { password } = req.body;
-    const { token } = req.params;
+    const { email, otp, password } = req.body;
 
-    // Hash the token from URL
-    const resetPasswordToken = crypto
-      .createHash('sha256')
-      .update(token)
-      .digest('hex');
-
-    // Find user with valid token
-    const user = await User.findOne({
-      resetPasswordToken,
-      resetPasswordExpire: { $gt: Date.now() }
-    });
-
-    if (!user) {
+    if (!email || !otp || !password) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid or expired reset token'
+        message: 'Email, OTP, and new password are required'
       });
     }
 
-    // Set new password
+    // Find user by email
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Import OTP model
+    const OTP = require('../models/OTP');
+
+    // Find the OTP record
+    const otpRecord = await OTP.findOne({
+      userId: user._id,
+      type: 'password_reset',
+      email: user.email,
+      expiresAt: { $gt: new Date() }
+    });
+
+    if (!otpRecord) {
+      return res.status(400).json({
+        success: false,
+        message: 'OTP expired or not found. Please request a new one.'
+      });
+    }
+
+    // Check max attempts
+    if (otpRecord.attempts >= otpRecord.maxAttempts) {
+      await OTP.deleteOne({ _id: otpRecord._id });
+      return res.status(400).json({
+        success: false,
+        message: 'Too many failed attempts. Please request a new OTP.'
+      });
+    }
+
+    // Verify OTP
+    if (otpRecord.otp !== otp) {
+      otpRecord.attempts += 1;
+      await otpRecord.save();
+      
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid OTP',
+        data: {
+          attemptsRemaining: otpRecord.maxAttempts - otpRecord.attempts
+        }
+      });
+    }
+
+    // OTP is valid - set new password
     user.password = password;
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpire = undefined;
     await user.save();
+
+    // Delete the used OTP
+    await OTP.deleteOne({ _id: otpRecord._id });
 
     sendToken(user, 200, res, 'Password reset successful');
   } catch (error) {

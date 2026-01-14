@@ -323,7 +323,7 @@
 								"forgot-password"
 							]
 						},
-						"description": "You can use either 'email' OR 'username' (not both). Example with username: {\"username\": \"johndoe\"}"
+						"description": "Send a 4-digit OTP to the user's email for password reset. The OTP will be sent via email and expires in 10 minutes."
 					}
 				},
 				{
@@ -338,10 +338,10 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"password\": \"newpassword789\"\n}"
+							"raw": "{\n  \"email\": \"john@example.com\",\n  \"otp\": \"1234\",\n  \"password\": \"newpassword789\"\n}"
 						},
 						"url": {
-							"raw": "http://api.adwebtest.online/api/auth/reset-password/:token",
+							"raw": "http://api.adwebtest.online/api/auth/reset-password",
 							"protocol": "http",
 							"host": [
 								"api",
@@ -351,16 +351,10 @@
 							"path": [
 								"api",
 								"auth",
-								"reset-password",
-								":token"
-							],
-							"variable": [
-								{
-									"key": "token",
-									"value": "YOUR_RESET_TOKEN_HERE"
-								}
+								"reset-password"
 							]
-						}
+						},
+						"description": "Reset password using the 4-digit OTP received via email. Requires email, OTP, and new password."
 					}
 				},
 				{
