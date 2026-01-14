@@ -37,11 +37,6 @@ exports.registerValidator = [
     .isLength({ min: 6 })
     .withMessage('Password must be at least 6 characters'),
   
-  body('phone')
-    .optional()
-    .matches(/^[0-9]{10,15}$/)
-    .withMessage('Please provide a valid phone number'),
-  
   body('role')
     .optional()
     .isIn(['user', 'artist'])

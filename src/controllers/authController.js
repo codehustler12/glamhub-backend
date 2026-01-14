@@ -24,7 +24,6 @@ exports.register = async (req, res, next) => {
       username, 
       email,
       password, 
-      phone, 
       role,
       agreeToPrivacyPolicy 
     } = req.body;
@@ -56,7 +55,6 @@ exports.register = async (req, res, next) => {
       username,
       email,
       password,
-      phone,
       role: role || 'user',
       agreeToPrivacyPolicy: agreeToPrivacyPolicy || false
     });
