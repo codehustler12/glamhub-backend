@@ -1,7 +1,7 @@
 # Forgot Password Flow - Complete Process
 
 ## Overview
-The forgot password flow uses **OTP (4-digit code)** sent via email. There are **3 screens** and **2 API calls**.
+The forgot password flow uses **OTP (6-digit code)** sent via email. There are **3 screens** and **2 API calls**.
 
 ---
 
@@ -29,7 +29,7 @@ The forgot password flow uses **OTP (4-digit code)** sent via email. There are *
 ```
 
 ### What happens:
-- ✅ Generates a **4-digit OTP**
+- ✅ Generates a **6-digit OTP**
 - ✅ Sends OTP to user's email
 - ✅ OTP expires in **10 minutes**
 - ✅ 1-minute cooldown between requests
@@ -41,11 +41,11 @@ The forgot password flow uses **OTP (4-digit code)** sent via email. There are *
 ---
 
 ## Screen 2: Verify Code Page
-**UI:** User enters 4-digit OTP code  
+**UI:** User enters 6-digit OTP code  
 **API Call:** None (just collect OTP, verify in next step)
 
 ### Frontend Action:
-- User enters 4-digit code
+- User enters 6-digit code
 - Show "Resend Code" option (calls same API as Screen 1)
 - When user clicks "Continue", proceed to **Screen 3**
 
@@ -59,7 +59,7 @@ The forgot password flow uses **OTP (4-digit code)** sent via email. There are *
 ```json
 {
   "email": "user@example.com",
-  "otp": "1234",
+  "otp": "123456",
   "password": "newpassword123"
 }
 ```
@@ -101,7 +101,7 @@ The forgot password flow uses **OTP (4-digit code)** sent via email. There are *
 ```
 
 ### What happens:
-- ✅ Verifies the 4-digit OTP
+- ✅ Verifies the 6-digit OTP
 - ✅ Checks if OTP is expired (10 minutes)
 - ✅ Checks max attempts (3 attempts allowed)
 - ✅ Sets new password
@@ -129,7 +129,7 @@ The forgot password flow uses **OTP (4-digit code)** sent via email. There are *
             ▼
 ┌─────────────────────────┐
 │  Screen 2: Verify Code   │
-│  [Enter 4-digit OTP]     │
+│  [Enter 6-digit OTP]     │
 │  [Resend Code]           │
 └───────────┬─────────────┘
             │
@@ -146,7 +146,7 @@ The forgot password flow uses **OTP (4-digit code)** sent via email. There are *
             │ POST /api/auth/reset-password
             │ {
             │   "email": "user@example.com",
-            │   "otp": "1234",
+            │   "otp": "123456",
             │   "password": "newpassword123"
             │ }
             │
@@ -173,7 +173,7 @@ The forgot password flow uses **OTP (4-digit code)** sent via email. There are *
   ```json
   {
     "email": "user@example.com",
-    "otp": "1234",
+    "otp": "123456",
     "password": "newpassword123"
   }
   ```
@@ -184,7 +184,7 @@ The forgot password flow uses **OTP (4-digit code)** sent via email. There are *
 ## Important Notes
 
 ### OTP Details:
-- **Length:** 4 digits
+- **Length:** 6 digits (consistent with mobile verification)
 - **Expiry:** 10 minutes
 - **Max Attempts:** 3 attempts
 - **Cooldown:** 1 minute between requests
@@ -259,7 +259,7 @@ Use a real email address that you can access.
 - OTP will be logged if email service is not configured
 
 ### Test Flow:
-1. Call forgot-password API → Check email for 4-digit code
+1. Call forgot-password API → Check email for 6-digit code
 2. Enter code on verify screen
 3. Enter new password on recovery screen
 4. Call reset-password API with email, OTP, and new password

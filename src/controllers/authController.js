@@ -286,8 +286,8 @@ exports.forgotPassword = async (req, res, next) => {
       });
     }
 
-    // Generate 4-digit OTP (as shown in UI)
-    const otp = generateOTP(4);
+    // Generate 6-digit OTP (consistent with mobile verification)
+    const otp = generateOTP(6);
     const expiresAt = getOTPExpiry(10); // 10 minutes
 
     // Delete old password reset OTPs for this user
