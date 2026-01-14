@@ -1,4 +1,12 @@
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+// Conditionally require Stripe - only if keys are configured
+let stripe = null;
+try {
+  if (process.env.STRIPE_SECRET_KEY) {
+    stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+  }
+} catch (error) {
+  console.warn('Stripe module not installed or not configured. Payment features will be disabled.');
+}
 
 /**
  * Create a payment intent for booking
@@ -11,6 +19,13 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
  */
 const createPaymentIntent = async (amount, currency, appointmentId, clientId, artistId) => {
   try {
+    if (!stripe || !process.env.STRIPE_SECRET_KEY) {
+      return {
+        success: false,
+        error: 'Stripe is not configured. Please add STRIPE_SECRET_KEY to environment variables.'
+      };
+    }
+
     // Convert amount to smallest currency unit
     // For AED, USD, EUR: multiply by 100 (cents/fils)
     // For INR, PKR: multiply by 100 (paise)
@@ -51,6 +66,13 @@ const createPaymentIntent = async (amount, currency, appointmentId, clientId, ar
  */
 const confirmPayment = async (paymentIntentId) => {
   try {
+    if (!stripe || !process.env.STRIPE_SECRET_KEY) {
+      return {
+        success: false,
+        error: 'Stripe is not configured. Please add STRIPE_SECRET_KEY to environment variables.'
+      };
+    }
+
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
 
     if (paymentIntent.status === 'succeeded') {
@@ -83,6 +105,13 @@ const confirmPayment = async (paymentIntentId) => {
  */
 const createRefund = async (paymentIntentId, amount = null) => {
   try {
+    if (!stripe || !process.env.STRIPE_SECRET_KEY) {
+      return {
+        success: false,
+        error: 'Stripe is not configured. Please add STRIPE_SECRET_KEY to environment variables.'
+      };
+    }
+
     const refundParams = {
       payment_intent: paymentIntentId
     };
@@ -113,6 +142,13 @@ const createRefund = async (paymentIntentId, amount = null) => {
  */
 const getPaymentIntent = async (paymentIntentId) => {
   try {
+    if (!stripe || !process.env.STRIPE_SECRET_KEY) {
+      return {
+        success: false,
+        error: 'Stripe is not configured. Please add STRIPE_SECRET_KEY to environment variables.'
+      };
+    }
+
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
     return {
       success: true,

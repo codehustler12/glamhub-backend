@@ -200,23 +200,32 @@ exports.createBooking = async (req, res, next) => {
       status: 'pending'
     });
 
-    // If payment method is 'pay_now', create payment intent
+    // If payment method is 'pay_now', create payment intent (only if Stripe is configured)
     let paymentIntent = null;
     if (paymentMethod === 'pay_now') {
-      const { createPaymentIntent } = require('../services/stripeService');
-      const paymentResult = await createPaymentIntent(
-        totalAmount,
-        primaryService.currency,
-        appointment._id,
-        clientId,
-        artistId
-      );
+      try {
+        const { createPaymentIntent } = require('../services/stripeService');
+        const paymentResult = await createPaymentIntent(
+          totalAmount,
+          primaryService.currency,
+          appointment._id,
+          clientId,
+          artistId
+        );
 
-      if (paymentResult.success) {
-        paymentIntent = {
-          clientSecret: paymentResult.clientSecret,
-          paymentIntentId: paymentResult.paymentIntentId
-        };
+        if (paymentResult.success) {
+          paymentIntent = {
+            clientSecret: paymentResult.clientSecret,
+            paymentIntentId: paymentResult.paymentIntentId
+          };
+        } else {
+          // Stripe not configured - return warning but still create booking
+          console.warn('Stripe not configured. Booking created but payment cannot be processed online.');
+        }
+      } catch (error) {
+        // Stripe module not installed or not configured
+        console.warn('Stripe service not available:', error.message);
+        // Still create booking, but payment will need to be handled manually
       }
     }
 
