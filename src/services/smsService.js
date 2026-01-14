@@ -41,9 +41,13 @@ const sendOTPSMS = async (phoneNumber, otp) => {
     };
   } catch (error) {
     console.error('SMS sending error:', error);
+    // Log OTP to console for development/testing when SMS fails
+    console.log('⚠️ SMS failed - OTP for', phoneNumber, 'is:', otp);
     return {
       success: false,
-      error: error.message
+      error: error.message,
+      development: true,
+      otp: otp // Include OTP in response for development (remove in production)
     };
   }
 };
