@@ -102,6 +102,137 @@ exports.getBookingById = async (req, res, next) => {
   }
 };
 
+// @desc    Create a new booking
+// @route   POST /api/client/bookings
+// @access  Private (Client only)
+exports.createBooking = async (req, res, next) => {
+  try {
+    if (req.user.role !== 'user') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only clients can create bookings'
+      });
+    }
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation Error',
+        errors: errors.array()
+      });
+    }
+
+    const {
+      artistId,
+      serviceIds, // Array of service IDs
+      appointmentDate,
+      appointmentTime,
+      venue,
+      venueDetails,
+      paymentMethod,
+      notes
+    } = req.body;
+
+    const clientId = req.user.id;
+
+    // Verify artist exists
+    const artist = await User.findById(artistId);
+    if (!artist || artist.role !== 'artist') {
+      return res.status(404).json({
+        success: false,
+        message: 'Artist not found'
+      });
+    }
+
+    // Verify services exist and belong to the artist
+    const services = await Service.find({
+      _id: { $in: serviceIds },
+      artistId,
+      isActive: true
+    });
+
+    if (services.length !== serviceIds.length) {
+      return res.status(400).json({
+        success: false,
+        message: 'One or more services not found or inactive'
+      });
+    }
+
+    // Calculate total amount
+    let totalAmount = 0;
+    const serviceFee = 150; // Fixed service fee (can be made configurable)
+    
+    services.forEach(service => {
+      totalAmount += service.price;
+    });
+
+    totalAmount += serviceFee;
+
+    // Prepare services array for appointment
+    const servicesArray = services.map(service => ({
+      serviceId: service._id,
+      serviceName: service.serviceName,
+      price: service.price,
+      currency: service.currency
+    }));
+
+    // Use first service's details for main serviceId and serviceType
+    const primaryService = services[0];
+
+    // Create appointment
+    const appointment = await Appointment.create({
+      artistId,
+      clientId,
+      serviceId: primaryService._id,
+      appointmentDate: new Date(appointmentDate),
+      appointmentTime,
+      venue: venue || 'artist_studio',
+      venueDetails: venueDetails || {},
+      paymentMethod: paymentMethod || 'pay_at_venue',
+      paymentStatus: paymentMethod === 'pay_now' ? 'pending' : 'pending',
+      services: servicesArray,
+      totalAmount,
+      serviceFee,
+      currency: primaryService.currency,
+      serviceType: primaryService.serviceType,
+      notes: notes || '',
+      status: 'pending'
+    });
+
+    // If payment method is 'pay_now', create payment intent
+    let paymentIntent = null;
+    if (paymentMethod === 'pay_now') {
+      const { createPaymentIntent } = require('../services/stripeService');
+      const paymentResult = await createPaymentIntent(
+        totalAmount,
+        primaryService.currency,
+        appointment._id,
+        clientId,
+        artistId
+      );
+
+      if (paymentResult.success) {
+        paymentIntent = {
+          clientSecret: paymentResult.clientSecret,
+          paymentIntentId: paymentResult.paymentIntentId
+        };
+      }
+    }
+
+    res.status(201).json({
+      success: true,
+      message: 'Booking created successfully',
+      data: {
+        booking: appointment,
+        paymentIntent // Only included if paymentMethod is 'pay_now'
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // ============================================
 // REVIEWS CONTROLLERS
 // ============================================

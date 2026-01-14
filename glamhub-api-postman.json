@@ -1442,6 +1442,8 @@
 					}
 				}
 			]
+		}
+	]
 		},
 		{
 			"name": "Client",
@@ -1449,6 +1451,47 @@
 				{
 					"name": "Bookings",
 					"item": [
+						{
+							"name": "Create Booking",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{authToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"artistId\": \"ARTIST_ID_HERE\",\n  \"serviceIds\": [\"SERVICE_ID_1\", \"SERVICE_ID_2\"],\n  \"appointmentDate\": \"2024-02-15\",\n  \"appointmentTime\": \"morning (8AM - 12PM)\",\n  \"venue\": \"artist_studio\",\n  \"venueDetails\": {\n    \"venueName\": \"\",\n    \"street\": \"\",\n    \"city\": \"\",\n    \"state\": \"\"\n  },\n  \"paymentMethod\": \"pay_now\",\n  \"notes\": \"Please arrive 15 minutes early\"\n}"
+								},
+								"url": {
+									"raw": "http://api.adwebtest.online/api/client/bookings",
+									"protocol": "http",
+									"host": [
+										"api",
+										"adwebtest",
+										"online"
+									],
+									"path": [
+										"api",
+										"client",
+										"bookings"
+									]
+								},
+								"description": "Create a new booking. If paymentMethod is 'pay_now', a paymentIntent will be returned for Stripe payment processing."
+							}
+						},
 						{
 							"name": "Get My Bookings",
 							"request": {
@@ -1748,6 +1791,135 @@
 									]
 								},
 								"description": "Remove an artist from favorites."
+							}
+						}
+					]
+				},
+				{
+					"name": "Payments",
+					"item": [
+						{
+							"name": "Process Payment",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{authToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"appointmentId\": \"APPOINTMENT_ID_HERE\",\n  \"paymentIntentId\": \"pi_xxxxxxxxxxxxx\"\n}"
+								},
+								"url": {
+									"raw": "http://api.adwebtest.online/api/client/payments/process",
+									"protocol": "http",
+									"host": [
+										"api",
+										"adwebtest",
+										"online"
+									],
+									"path": [
+										"api",
+										"client",
+										"payments",
+										"process"
+									]
+								},
+								"description": "Process payment for a booking. Use the paymentIntentId from the booking creation response."
+							}
+						},
+						{
+							"name": "Get Payment Intent Status",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{authToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://api.adwebtest.online/api/client/payments/intent/:paymentIntentId",
+									"protocol": "http",
+									"host": [
+										"api",
+										"adwebtest",
+										"online"
+									],
+									"path": [
+										"api",
+										"client",
+										"payments",
+										"intent",
+										":paymentIntentId"
+									],
+									"variable": [
+										{
+											"key": "paymentIntentId",
+											"value": "pi_xxxxxxxxxxxxx"
+										}
+									]
+								},
+								"description": "Check the status of a payment intent."
+							}
+						},
+						{
+							"name": "Request Refund",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{authToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"appointmentId\": \"APPOINTMENT_ID_HERE\",\n  \"reason\": \"Cancelled by client\"\n}"
+								},
+								"url": {
+									"raw": "http://api.adwebtest.online/api/client/payments/refund",
+									"protocol": "http",
+									"host": [
+										"api",
+										"adwebtest",
+										"online"
+									],
+									"path": [
+										"api",
+										"client",
+										"payments",
+										"refund"
+									]
+								},
+								"description": "Request a refund for a paid booking."
 							}
 						}
 					]

@@ -31,6 +31,48 @@ const appointmentSchema = new mongoose.Schema({
     trim: true,
     default: ''
   },
+  venue: {
+    type: String,
+    enum: ['artist_studio', 'client_venue'],
+    default: 'artist_studio'
+  },
+  venueDetails: {
+    venueName: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    street: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    city: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    state: {
+      type: String,
+      trim: true,
+      default: ''
+    }
+  },
+  paymentMethod: {
+    type: String,
+    enum: ['pay_at_venue', 'pay_now'],
+    default: 'pay_at_venue'
+  },
+  paymentStatus: {
+    type: String,
+    enum: ['pending', 'paid', 'refunded', 'failed'],
+    default: 'pending'
+  },
+  serviceFee: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
   services: [{
     serviceId: {
       type: mongoose.Schema.Types.ObjectId,
