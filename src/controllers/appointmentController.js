@@ -1,6 +1,7 @@
 const Appointment = require('../models/Appointment');
 const Service = require('../models/Service');
 const User = require('../models/User');
+const mongoose = require('mongoose');
 const { validationResult } = require('express-validator');
 
 // @desc    Get dashboard stats for artist
@@ -30,7 +31,7 @@ exports.getDashboardStats = async (req, res, next) => {
     const revenueData = await Appointment.aggregate([
       {
         $match: {
-          artistId: new require('mongoose').Types.ObjectId(artistId),
+          artistId: new mongoose.Types.ObjectId(artistId),
           status: 'completed',
           ...dateFilter
         }
@@ -62,7 +63,7 @@ exports.getDashboardStats = async (req, res, next) => {
     const ratingData = await Review.aggregate([
       {
         $match: {
-          artistId: new require('mongoose').Types.ObjectId(artistId),
+          artistId: new mongoose.Types.ObjectId(artistId),
           isPublished: true
         }
       },
