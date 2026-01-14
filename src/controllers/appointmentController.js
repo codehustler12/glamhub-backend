@@ -17,7 +17,9 @@ exports.getDashboardStats = async (req, res, next) => {
       });
     }
 
-    const artistId = req.user.id;
+    const artistIdStr = req.user.id;
+    // Convert to ObjectId for aggregation queries
+    const artistId = new mongoose.Types.ObjectId(artistIdStr);
     const { startDate, endDate } = req.query;
 
     // Build date filter
@@ -32,7 +34,7 @@ exports.getDashboardStats = async (req, res, next) => {
     const revenueData = await Appointment.aggregate([
       {
         $match: {
-          artistId: mongoose.Types.ObjectId.isValid(artistId) ? new mongoose.Types.ObjectId(artistId) : artistId,
+          artistId: artistId,
           status: 'completed',
           ...dateFilter
         }
@@ -64,7 +66,7 @@ exports.getDashboardStats = async (req, res, next) => {
     const ratingData = await Review.aggregate([
       {
         $match: {
-          artistId: mongoose.Types.ObjectId.isValid(artistId) ? new mongoose.Types.ObjectId(artistId) : artistId,
+          artistId: artistId,
           isPublished: true
         }
       },
