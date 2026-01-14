@@ -32,7 +32,7 @@ exports.getDashboardStats = async (req, res, next) => {
     const revenueData = await Appointment.aggregate([
       {
         $match: {
-          artistId: mongoose.Types.ObjectId(artistId),
+          artistId: new mongoose.Types.ObjectId(artistId),
           status: 'completed',
           ...dateFilter
         }
@@ -64,7 +64,7 @@ exports.getDashboardStats = async (req, res, next) => {
     const ratingData = await Review.aggregate([
       {
         $match: {
-          artistId: mongoose.Types.ObjectId(artistId),
+          artistId: new mongoose.Types.ObjectId(artistId),
           isPublished: true
         }
       },
