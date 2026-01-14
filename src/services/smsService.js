@@ -75,4 +75,3 @@ const formatPhoneNumber = (phone, countryCode = '+91') => {
 };
 
 module.exports = { sendOTPSMS, validatePhoneNumber, formatPhoneNumber };
-
