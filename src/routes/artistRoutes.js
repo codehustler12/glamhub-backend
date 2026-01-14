@@ -11,9 +11,21 @@ const {
 const {
   getAppointments,
   getAppointment,
-  updateAppointmentStatus
+  updateAppointmentStatus,
+  createAppointment,
+  createBlockedTime,
+  getBlockedTime,
+  deleteBlockedTime,
+  createVacation,
+  getVacations,
+  deleteVacation
 } = require('../controllers/appointmentController');
-const { updateStatusValidator } = require('../validators/appointmentValidator');
+const {
+  updateStatusValidator,
+  createAppointmentValidator,
+  createBlockedTimeValidator,
+  createVacationValidator
+} = require('../validators/appointmentValidator');
 
 // Reviews
 const {
@@ -27,7 +39,18 @@ router.get('/dashboard/stats', protect, getDashboardStats);
 // Appointments
 router.get('/appointments', protect, getAppointments);
 router.get('/appointments/:id', protect, getAppointment);
+router.post('/appointments', protect, createAppointmentValidator, createAppointment);
 router.put('/appointments/:id/status', protect, updateStatusValidator, updateAppointmentStatus);
+
+// Blocked Time
+router.post('/blocked-time', protect, createBlockedTimeValidator, createBlockedTime);
+router.get('/blocked-time', protect, getBlockedTime);
+router.delete('/blocked-time/:id', protect, deleteBlockedTime);
+
+// Vacations
+router.post('/vacations', protect, createVacationValidator, createVacation);
+router.get('/vacations', protect, getVacations);
+router.delete('/vacations/:id', protect, deleteVacation);
 
 // Reviews
 router.get('/reviews', getReviews); // Can be public with artistId query

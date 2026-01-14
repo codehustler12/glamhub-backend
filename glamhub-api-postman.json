@@ -846,6 +846,301 @@
 								},
 								"description": "Update appointment status. Status: pending, confirmed, completed, cancelled, rejected"
 							}
+						},
+						{
+							"name": "Create Appointment",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{authToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"clientId\": \"CLIENT_ID_HERE\",\n  \"serviceIds\": [\"SERVICE_ID_1\", \"SERVICE_ID_2\"],\n  \"appointmentDate\": \"2025-10-15\",\n  \"appointmentTime\": \"02:00 PM\",\n  \"venue\": \"artist_studio\",\n  \"venueDetails\": {},\n  \"paymentMethod\": \"pay_at_venue\",\n  \"notes\": \"\"\n}"
+								},
+								"url": {
+									"raw": "http://api.adwebtest.online/api/artist/appointments",
+									"protocol": "http",
+									"host": [
+										"api",
+										"adwebtest",
+										"online"
+									],
+									"path": [
+										"api",
+										"artist",
+										"appointments"
+									]
+								},
+								"description": "Artist manually creates an appointment. Venue: artist_studio or client_venue. Payment method: pay_at_venue or pay_now"
+							}
+						}
+					]
+				},
+				{
+					"name": "Blocked Time",
+					"item": [
+						{
+							"name": "Create Blocked Time",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{authToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"startDate\": \"2025-09-19\",\n  \"endDate\": \"2025-09-19\",\n  \"startTime\": \"01:00 PM\",\n  \"duration\": \"3 hours\",\n  \"reason\": \"Personal break\"\n}"
+								},
+								"url": {
+									"raw": "http://api.adwebtest.online/api/artist/blocked-time",
+									"protocol": "http",
+									"host": [
+										"api",
+										"adwebtest",
+										"online"
+									],
+									"path": [
+										"api",
+										"artist",
+										"blocked-time"
+									]
+								},
+								"description": "Block a time slot. Duration format: '3 hours', '2 hours', etc."
+							}
+						},
+						{
+							"name": "Get Blocked Time",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{authToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://api.adwebtest.online/api/artist/blocked-time?startDate=&endDate=",
+									"protocol": "http",
+									"host": [
+										"api",
+										"adwebtest",
+										"online"
+									],
+									"path": [
+										"api",
+										"artist",
+										"blocked-time"
+									],
+									"query": [
+										{
+											"key": "startDate",
+											"value": "",
+											"description": "Optional: YYYY-MM-DD"
+										},
+										{
+											"key": "endDate",
+											"value": "",
+											"description": "Optional: YYYY-MM-DD"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Delete Blocked Time",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{authToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "http://api.adwebtest.online/api/artist/blocked-time/:id",
+									"protocol": "http",
+									"host": [
+										"api",
+										"adwebtest",
+										"online"
+									],
+									"path": [
+										"api",
+										"artist",
+										"blocked-time",
+										":id"
+									],
+									"variable": [
+										{
+											"key": "id",
+											"value": "BLOCKED_TIME_ID_HERE"
+										}
+									]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "Vacations",
+					"item": [
+						{
+							"name": "Create Vacation",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{authToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"startDate\": \"2025-12-20\",\n  \"endDate\": \"2025-12-25\",\n  \"reason\": \"Holiday vacation\"\n}"
+								},
+								"url": {
+									"raw": "http://api.adwebtest.online/api/artist/vacations",
+									"protocol": "http",
+									"host": [
+										"api",
+										"adwebtest",
+										"online"
+									],
+									"path": [
+										"api",
+										"artist",
+										"vacations"
+									]
+								},
+								"description": "Add vacation period. Blocks all appointments during this date range."
+							}
+						},
+						{
+							"name": "Get Vacations",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{authToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://api.adwebtest.online/api/artist/vacations?startDate=&endDate=",
+									"protocol": "http",
+									"host": [
+										"api",
+										"adwebtest",
+										"online"
+									],
+									"path": [
+										"api",
+										"artist",
+										"vacations"
+									],
+									"query": [
+										{
+											"key": "startDate",
+											"value": "",
+											"description": "Optional: YYYY-MM-DD"
+										},
+										{
+											"key": "endDate",
+											"value": "",
+											"description": "Optional: YYYY-MM-DD"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Delete Vacation",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{authToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "http://api.adwebtest.online/api/artist/vacations/:id",
+									"protocol": "http",
+									"host": [
+										"api",
+										"adwebtest",
+										"online"
+									],
+									"path": [
+										"api",
+										"artist",
+										"vacations",
+										":id"
+									],
+									"variable": [
+										{
+											"key": "id",
+											"value": "VACATION_ID_HERE"
+										}
+									]
+								}
+							}
 						}
 					]
 				},
