@@ -112,10 +112,21 @@ exports.deletePortfolioImage = async (req, res, next) => {
       });
     }
 
-    const imageUrl = decodeURIComponent(req.params.imageUrl);
+    // Get the image identifier from URL parameter (could be filename or full path)
+    const imageIdentifier = decodeURIComponent(req.params.imageUrl);
+    
+    // Extract just the filename from the identifier (in case full path is provided)
+    const filename = path.basename(imageIdentifier);
+    
     const user = await User.findById(req.user.id);
 
-    if (!user.portfolioImages.includes(imageUrl)) {
+    // Find the image in portfolio by matching filename (works with both full path and filename)
+    const imageToDelete = user.portfolioImages.find(img => {
+      const imgFilename = path.basename(img);
+      return imgFilename === filename;
+    });
+
+    if (!imageToDelete) {
       return res.status(404).json({
         success: false,
         message: 'Image not found in portfolio'
@@ -123,11 +134,13 @@ exports.deletePortfolioImage = async (req, res, next) => {
     }
 
     // Remove image from array
-    user.portfolioImages = user.portfolioImages.filter(img => img !== imageUrl);
+    user.portfolioImages = user.portfolioImages.filter(img => {
+      const imgFilename = path.basename(img);
+      return imgFilename !== filename;
+    });
     await user.save();
 
     // Delete file from server (in production, delete from cloud storage)
-    const filename = path.basename(imageUrl);
     const filePath = path.join(__dirname, '../../uploads/portfolio/', filename);
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
