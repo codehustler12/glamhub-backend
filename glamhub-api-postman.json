@@ -28,6 +28,143 @@
 			}
 		},
 		{
+			"name": "Public",
+			"item": [
+				{
+					"name": "Get All Artists (Explore Page)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://api.adwebtest.online/api/artists?page=1&limit=12&sortBy=rating",
+							"protocol": "http",
+							"host": [
+								"api",
+								"adwebtest",
+								"online"
+							],
+							"path": [
+								"api",
+								"artists"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number"
+								},
+								{
+									"key": "limit",
+									"value": "12",
+									"description": "Items per page"
+								},
+								{
+									"key": "city",
+									"value": "",
+									"description": "Filter by city"
+								},
+								{
+									"key": "serviceType",
+									"value": "",
+									"description": "Filter by service type (makeup, hair, etc.)"
+								},
+								{
+									"key": "minPrice",
+									"value": "",
+									"description": "Minimum price"
+								},
+								{
+									"key": "maxPrice",
+									"value": "",
+									"description": "Maximum price"
+								},
+								{
+									"key": "search",
+									"value": "",
+									"description": "Search by name, username, or description"
+								},
+								{
+									"key": "sortBy",
+									"value": "rating",
+									"description": "Sort by: rating, price, newest"
+								}
+							]
+						},
+						"description": "Get all artists for explore/listing page. Public endpoint - no authentication required."
+					}
+				},
+				{
+					"name": "Get Artist Profile",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://api.adwebtest.online/api/artists/:id",
+							"protocol": "http",
+							"host": [
+								"api",
+								"adwebtest",
+								"online"
+							],
+							"path": [
+								"api",
+								"artists",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "ARTIST_ID_HERE"
+								}
+							]
+						},
+						"description": "Get detailed artist profile with services, reviews, and stats. Public endpoint - no authentication required."
+					}
+				},
+				{
+					"name": "Check Artist Availability",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://api.adwebtest.online/api/artists/:id/availability?date=2025-10-15",
+							"protocol": "http",
+							"host": [
+								"api",
+								"adwebtest",
+								"online"
+							],
+							"path": [
+								"api",
+								"artists",
+								":id",
+								"availability"
+							],
+							"query": [
+								{
+									"key": "date",
+									"value": "2025-10-15",
+									"description": "Date to check (YYYY-MM-DD)"
+								},
+								{
+									"key": "time",
+									"value": "",
+									"description": "Optional: Time to check"
+								}
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "ARTIST_ID_HERE"
+								}
+							]
+						},
+						"description": "Check if artist is available on a specific date. Public endpoint - no authentication required."
+					}
+				}
+			]
+		},
+		{
 			"name": "Auth",
 			"item": [
 				{
