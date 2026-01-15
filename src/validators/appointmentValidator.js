@@ -188,8 +188,17 @@ exports.createAppointmentValidator = [
 
   body('appointmentTime')
     .notEmpty()
-    .withMessage('Appointment time is required')
+    .withMessage('Appointment time (start time) is required')
     .trim(),
+
+  body('endTime')
+    .optional()
+    .trim(),
+
+  body('duration')
+    .optional()
+    .isInt({ min: 15, max: 1440 })
+    .withMessage('Duration must be between 15 and 1440 minutes (15 minutes to 24 hours)'),
 
   body('venue')
     .optional()
