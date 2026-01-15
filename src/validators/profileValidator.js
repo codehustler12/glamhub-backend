@@ -23,7 +23,16 @@ exports.updateProfileValidator = [
 
   body('phone')
     .optional()
-    .matches(/^[0-9]{10,15}$/)
+    .custom((value) => {
+      if (!value || value.trim() === '') return true; // Allow empty
+      // Remove +, spaces, dashes, parentheses for validation
+      const cleaned = value.replace(/[\s+\-()]/g, '');
+      // Check if it's 10-15 digits
+      if (!/^[0-9]{10,15}$/.test(cleaned)) {
+        throw new Error('Please provide a valid phone number (10-15 digits)');
+      }
+      return true;
+    })
     .withMessage('Please provide a valid phone number (10-15 digits)'),
 
   body('email')
