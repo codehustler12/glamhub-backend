@@ -1006,7 +1006,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"clientId\": \"CLIENT_ID_HERE\",\n  \"serviceIds\": [\"SERVICE_ID_1\", \"SERVICE_ID_2\"],\n  \"appointmentDate\": \"2025-10-15\",\n  \"appointmentTime\": \"02:00 PM\",\n  \"venue\": \"artist_studio\",\n  \"venueDetails\": {},\n  \"paymentMethod\": \"pay_at_venue\",\n  \"notes\": \"\"\n}"
+									"raw": "{\n  \"clientId\": \"CLIENT_ID_HERE\",\n  \"serviceIds\": [\"SERVICE_ID_1\", \"SERVICE_ID_2\"],\n  \"appointmentDate\": \"2025-10-15\",\n  \"appointmentTime\": \"02:00 PM\",\n  \"endTime\": \"06:00 PM\",\n  \"duration\": 240,\n  \"venue\": \"client_venue\",\n  \"venueDetails\": {\n    \"venueName\": \"Venue\",\n    \"street\": \"Street, 11\",\n    \"city\": \"City\",\n    \"state\": \"State\"\n  },\n  \"paymentMethod\": \"pay_at_venue\",\n  \"notes\": \"\"\n}"
 								},
 								"url": {
 									"raw": "http://api.adwebtest.online/api/artist/appointments",
@@ -1022,7 +1022,7 @@
 										"appointments"
 									]
 								},
-								"description": "Artist manually creates an appointment. Venue: artist_studio or client_venue. Payment method: pay_at_venue or pay_now"
+								"description": "Artist manually creates an appointment. Either provide clientId OR client details (clientFirstName, clientLastName, clientEmail, clientPhone). Venue: artist_studio or client_venue. Payment method: pay_at_venue or pay_now. Provide either endTime or duration (in minutes)."
 							}
 						}
 					]
