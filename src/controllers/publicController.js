@@ -21,10 +21,10 @@ exports.getArtists = async (req, res, next) => {
       sortBy = 'rating' // rating, price, newest
     } = req.query;
 
-    // Build filter - only show verified artists with profile completed
+    // Build filter - only show active artists
     const filter = {
       role: 'artist',
-      isEmailVerified: true
+      isActive: true
     };
 
     // City filter
