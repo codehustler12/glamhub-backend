@@ -35,8 +35,40 @@ exports.updateProfileValidator = [
 
   body('avatar')
     .optional()
-    .isURL()
-    .withMessage('Avatar must be a valid URL'),
+    .custom((value) => {
+      // Allow empty string
+      if (!value || value.trim() === '') return true;
+      
+      // Check if it's a valid URL
+      try {
+        const url = new URL(value);
+        if (url.protocol === 'http:' || url.protocol === 'https:') {
+          return true;
+        }
+      } catch (e) {
+        // Not a URL, check if it's base64 image data
+      }
+      
+      // Check if it's a base64 data URI (data:image/...;base64,...)
+      if (value.startsWith('data:image/')) {
+        const base64Regex = /^data:image\/(jpeg|jpg|png|gif|webp);base64,[A-Za-z0-9+/=]+$/;
+        if (base64Regex.test(value)) {
+          // Check size (5MB limit for base64)
+          const base64Data = value.split(',')[1];
+          if (base64Data) {
+            const sizeInBytes = (base64Data.length * 3) / 4;
+            const sizeInMB = sizeInBytes / (1024 * 1024);
+            if (sizeInMB > 5) {
+              throw new Error('Avatar image size must be less than 5MB');
+            }
+          }
+          return true;
+        }
+      }
+      
+      throw new Error('Avatar must be a valid URL or base64 image data (data:image/...;base64,...)');
+    })
+    .withMessage('Avatar must be a valid URL or base64 image data'),
 
   // Artist profile fields
   body('city')
