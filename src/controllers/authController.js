@@ -180,9 +180,25 @@ exports.updateProfile = async (req, res, next) => {
       });
     }
 
+    // Check if username is being updated and if it's already taken
+    if (req.body.username) {
+      const existingUser = await User.findOne({
+        username: req.body.username,
+        _id: { $ne: req.user.id }
+      });
+
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          message: 'Username is already taken'
+        });
+      }
+    }
+
     const fieldsToUpdate = {
       firstName: req.body.firstName,
       lastName: req.body.lastName,
+      username: req.body.username,
       phone: req.body.phone,
       avatar: req.body.avatar,
       email: req.body.email,

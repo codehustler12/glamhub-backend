@@ -374,7 +374,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Updated\",\n  \"phone\": \"1111111111\",\n  \"email\": \"john.updated@example.com\",\n  \"avatar\": \"https://example.com/avatar.jpg\",\n  \"city\": \"Belgrade, Serbia\",\n  \"description\": \"Professional makeup artist with 5+ years of experience\",\n  \"hasStudio\": true,\n  \"address\": \"Street, 11, City\"\n}"
+							"raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Updated\",\n  \"username\": \"john_updated\",\n  \"phone\": \"1111111111\",\n  \"email\": \"john.updated@example.com\",\n  \"avatar\": \"https://example.com/avatar.jpg\",\n  \"city\": \"Belgrade, Serbia\",\n  \"description\": \"Professional makeup artist with 5+ years of experience\",\n  \"hasStudio\": true,\n  \"address\": \"Street, 11, City\"\n}"
 						},
 						"url": {
 							"raw": "http://api.adwebtest.online/api/auth/update-profile",
