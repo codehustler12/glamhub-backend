@@ -4,6 +4,7 @@ const cookieParser = require('cookie-parser');
 const errorHandler = require('./middleware/errorHandler');
 
 // Route imports
+
 const authRoutes = require('./routes/authRoutes');
 const otpRoutes = require('./routes/otpRoutes');
 const serviceRoutes = require('./routes/serviceRoutes');
