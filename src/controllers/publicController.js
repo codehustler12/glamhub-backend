@@ -178,11 +178,22 @@ exports.getArtistProfile = async (req, res, next) => {
   try {
     const artistId = req.params.id;
 
-    // Get artist
-    const artist = await User.findById(artistId)
-      .select('firstName lastName username email avatar city description portfolioImages hasStudio address createdAt');
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(artistId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid artist ID format'
+      });
+    }
 
-    if (!artist || artist.role !== 'artist') {
+    // Get artist - only active artists
+    const artist = await User.findOne({
+      _id: artistId,
+      role: 'artist',
+      isActive: true
+    }).select('firstName lastName username email avatar city description portfolioImages hasStudio address createdAt');
+
+    if (!artist) {
       return res.status(404).json({
         success: false,
         message: 'Artist not found'
@@ -263,16 +274,32 @@ exports.getArtistProfile = async (req, res, next) => {
       currency: pricingInfo[0].currency
     } : null;
 
+    // Format artist response to match listing API format
+    const artistData = {
+      ...artist.toObject(),
+      fullName: `${artist.firstName} ${artist.lastName}`,
+      id: artist._id.toString(),
+      stats: {
+        rating: stats.averageRating,
+        totalReviews: stats.totalReviews,
+        ratingDistribution: stats.ratingDistribution
+      },
+      pricing
+    };
+
     res.status(200).json({
       success: true,
       data: {
-        artist: {
-          ...artist.toObject(),
-          stats,
-          pricing
-        },
-        services,
-        recentReviews: reviews
+        artist: artistData,
+        services: services.map(service => ({
+          ...service.toObject(),
+          id: service._id.toString()
+        })),
+        reviews: reviews.map(review => ({
+          ...review.toObject(),
+          id: review._id.toString(),
+          client: review.clientId
+        }))
       }
     });
   } catch (error) {
