@@ -229,12 +229,19 @@ exports.createBooking = async (req, res, next) => {
       }
     }
 
+    // Determine response message based on payment status
+    let responseMessage = 'Booking created successfully';
+    if (paymentMethod === 'pay_now' && !paymentIntent) {
+      responseMessage = 'Booking created successfully. Payment integration pending - payment can be processed later when Stripe is configured.';
+    }
+
     res.status(201).json({
       success: true,
-      message: 'Booking created successfully',
+      message: responseMessage,
       data: {
         booking: appointment,
-        paymentIntent // Only included if paymentMethod is 'pay_now'
+        paymentIntent: paymentIntent || null, // Only included if paymentMethod is 'pay_now' and Stripe is configured
+        paymentPending: paymentMethod === 'pay_now' && !paymentIntent // Flag to indicate payment needs to be processed later
       }
     });
   } catch (error) {
