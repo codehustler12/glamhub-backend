@@ -283,10 +283,17 @@ exports.createAppointment = async (req, res, next) => {
     }
 
     const {
-      clientId,
+      clientId, // If client exists
+      // OR create new client with these fields:
+      clientFirstName,
+      clientLastName,
+      clientEmail,
+      clientPhone,
       serviceIds,
       appointmentDate,
-      appointmentTime,
+      appointmentTime, // Start time
+      endTime, // End time (optional, can be calculated from duration)
+      duration, // Duration in minutes (optional)
       venue,
       venueDetails,
       paymentMethod,
@@ -295,13 +302,49 @@ exports.createAppointment = async (req, res, next) => {
 
     const artistId = req.user.id;
 
-    // Verify client exists
-    const client = await User.findById(clientId);
-    if (!client || client.role !== 'user') {
-      return res.status(404).json({
-        success: false,
-        message: 'Client not found'
-      });
+    // Handle client - either use existing or create new
+    let client;
+    if (clientId) {
+      // Use existing client
+      client = await User.findById(clientId);
+      if (!client || client.role !== 'user') {
+        return res.status(404).json({
+          success: false,
+          message: 'Client not found'
+        });
+      }
+    } else {
+      // Create new client if client details provided
+      if (!clientFirstName || !clientLastName || !clientEmail) {
+        return res.status(400).json({
+          success: false,
+          message: 'Either clientId or client details (firstName, lastName, email) are required'
+        });
+      }
+
+      // Check if client with this email already exists
+      let existingClient = await User.findOne({ email: clientEmail.toLowerCase() });
+      
+      if (existingClient) {
+        // Use existing client
+        client = existingClient;
+      } else {
+        // Create new client
+        const bcrypt = require('bcryptjs');
+        const tempPassword = bcrypt.hashSync(Math.random().toString(36), 10);
+        
+        client = await User.create({
+          firstName: clientFirstName,
+          lastName: clientLastName,
+          username: clientEmail.split('@')[0] + '_' + Date.now(), // Generate unique username
+          email: clientEmail.toLowerCase(),
+          phone: clientPhone || '',
+          password: tempPassword, // Temporary password, client can reset later
+          role: 'user',
+          isEmailVerified: false,
+          isPhoneVerified: false
+        });
+      }
     }
 
     // Verify services exist and belong to the artist
@@ -339,16 +382,52 @@ exports.createAppointment = async (req, res, next) => {
 
     const primaryService = services[0];
 
+    // Calculate end time if not provided
+    let finalEndTime = endTime;
+    if (!finalEndTime && duration) {
+      // Calculate end time from start time and duration
+      const [startHour, startMin] = appointmentTime.replace(/[APM]/gi, '').split(':').map(Number);
+      const isPM = appointmentTime.toUpperCase().includes('PM') && startHour !== 12;
+      const isAM = appointmentTime.toUpperCase().includes('AM') && startHour === 12;
+      let hour24 = startHour;
+      if (isPM) hour24 += 12;
+      if (isAM) hour24 = 0;
+      
+      const startMinutes = hour24 * 60 + startMin;
+      const endMinutes = startMinutes + duration;
+      const endHour24 = Math.floor(endMinutes / 60) % 24;
+      const endMin = endMinutes % 60;
+      const endHour12 = endHour24 > 12 ? endHour24 - 12 : (endHour24 === 0 ? 12 : endHour24);
+      const endPeriod = endHour24 >= 12 ? 'PM' : 'AM';
+      finalEndTime = `${endHour12}:${endMin.toString().padStart(2, '0')} ${endPeriod}`;
+    }
+
+    // Format appointment time with end time if available
+    const formattedAppointmentTime = finalEndTime 
+      ? `${appointmentTime} - ${finalEndTime}`
+      : appointmentTime;
+
+    // Format venue details properly
+    let formattedVenueDetails = {};
+    if (venue === 'client_venue' && venueDetails) {
+      formattedVenueDetails = {
+        venueName: venueDetails.venueName || venueDetails.venue || '',
+        street: venueDetails.street || '',
+        city: venueDetails.city || '',
+        state: venueDetails.state || ''
+      };
+    }
+
     // Create appointment
     const appointment = await Appointment.create({
       artistId,
-      clientId,
+      clientId: client._id,
       serviceId: primaryService._id,
       services: servicesArray,
       appointmentDate: new Date(appointmentDate),
-      appointmentTime,
+      appointmentTime: formattedAppointmentTime,
       venue: venue || 'artist_studio',
-      venueDetails: venueDetails || {},
+      venueDetails: formattedVenueDetails,
       paymentMethod: paymentMethod || 'pay_at_venue',
       totalAmount,
       currency: primaryService.currency,

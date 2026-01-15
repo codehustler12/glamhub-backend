@@ -125,11 +125,46 @@ exports.requestRefundValidator = [
 
 // Validator for artist creating appointment manually
 exports.createAppointmentValidator = [
+  // Client ID is optional if creating new client
   body('clientId')
-    .notEmpty()
-    .withMessage('Client ID is required')
+    .optional()
     .isMongoId()
-    .withMessage('Invalid Client ID format'),
+    .withMessage('Invalid Client ID format')
+    .custom((value, { req }) => {
+      // If clientId is not provided, require client details
+      if (!value) {
+        if (!req.body.clientFirstName || !req.body.clientLastName || !req.body.clientEmail) {
+          throw new Error('Either clientId or client details (firstName, lastName, email) are required');
+        }
+      }
+      return true;
+    }),
+
+  // New client fields (required if clientId not provided)
+  body('clientFirstName')
+    .optional()
+    .trim()
+    .isLength({ min: 2, max: 30 })
+    .withMessage('Client first name must be between 2 and 30 characters'),
+
+  body('clientLastName')
+    .optional()
+    .trim()
+    .isLength({ min: 2, max: 30 })
+    .withMessage('Client last name must be between 2 and 30 characters'),
+
+  body('clientEmail')
+    .optional()
+    .trim()
+    .isEmail()
+    .withMessage('Please provide a valid client email')
+    .normalizeEmail(),
+
+  body('clientPhone')
+    .optional()
+    .trim()
+    .matches(/^[0-9+\-\s()]{10,15}$/)
+    .withMessage('Please provide a valid client phone number (10-15 digits)'),
 
   body('serviceIds')
     .isArray({ min: 1 })
@@ -162,7 +197,17 @@ exports.createAppointmentValidator = [
     .withMessage('Venue must be either artist_studio or client_venue'),
 
   body('venueDetails')
-    .optional(),
+    .optional()
+    .custom((value) => {
+      if (value && typeof value === 'object') {
+        // Validate venueDetails structure
+        const allowedKeys = ['venueName', 'venue', 'street', 'city', 'state'];
+        const keys = Object.keys(value);
+        return keys.every(key => allowedKeys.includes(key));
+      }
+      return true;
+    })
+    .withMessage('Invalid venueDetails structure'),
 
   body('paymentMethod')
     .optional()
