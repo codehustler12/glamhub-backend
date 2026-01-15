@@ -224,7 +224,11 @@ exports.getArtistProfile = async (req, res, next) => {
           totalReviews: { $sum: 1 },
           ratingDistribution: {
             $push: '$rating'
-          }
+          },
+          avgProfessionalism: { $avg: '$categories.professionalism' },
+          avgCommunication: { $avg: '$categories.communication' },
+          avgPunctuality: { $avg: '$categories.punctuality' },
+          avgValue: { $avg: '$categories.value' }
         }
       }
     ]);
@@ -243,11 +247,23 @@ exports.getArtistProfile = async (req, res, next) => {
     const stats = reviewStats.length > 0 ? {
       averageRating: Math.round(reviewStats[0].averageRating * 10) / 10,
       totalReviews: reviewStats[0].totalReviews,
-      ratingDistribution
+      ratingDistribution,
+      categories: {
+        professionalism: Math.round(reviewStats[0].avgProfessionalism * 10) / 10,
+        communication: Math.round(reviewStats[0].avgCommunication * 10) / 10,
+        punctuality: Math.round(reviewStats[0].avgPunctuality * 10) / 10,
+        value: Math.round(reviewStats[0].avgValue * 10) / 10
+      }
     } : {
       averageRating: 0,
       totalReviews: 0,
-      ratingDistribution
+      ratingDistribution,
+      categories: {
+        professionalism: 0,
+        communication: 0,
+        punctuality: 0,
+        value: 0
+      }
     };
 
     // Get pricing info
@@ -282,7 +298,8 @@ exports.getArtistProfile = async (req, res, next) => {
       stats: {
         rating: stats.averageRating,
         totalReviews: stats.totalReviews,
-        ratingDistribution: stats.ratingDistribution
+        ratingDistribution: stats.ratingDistribution,
+        categories: stats.categories
       },
       pricing
     };
