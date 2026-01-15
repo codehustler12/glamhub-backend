@@ -830,6 +830,55 @@
 								},
 								"description": "Get dashboard statistics: Total Revenue, Upcoming Appointments, Total Clients, Average Rating"
 							}
+						},
+						{
+							"name": "Get All Clients",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{authToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://api.adwebtest.online/api/artist/clients?page=1&limit=20&search=",
+									"protocol": "http",
+									"host": [
+										"api",
+										"adwebtest",
+										"online"
+									],
+									"path": [
+										"api",
+										"artist",
+										"clients"
+									],
+									"query": [
+										{
+											"key": "page",
+											"value": "1",
+											"description": "Page number (default: 1)"
+										},
+										{
+											"key": "limit",
+											"value": "20",
+											"description": "Items per page (default: 20)"
+										},
+										{
+											"key": "search",
+											"value": "",
+											"description": "Search by name, email, phone, or username"
+										}
+									]
+								},
+								"description": "Get all clients for artist to select when creating appointment. Supports search and pagination."
+							}
 						}
 					]
 				},

@@ -18,7 +18,8 @@ const {
   deleteBlockedTime,
   createVacation,
   getVacations,
-  deleteVacation
+  deleteVacation,
+  getClients
 } = require('../controllers/appointmentController');
 const {
   updateStatusValidator,
@@ -35,6 +36,9 @@ const {
 
 // Dashboard Stats
 router.get('/dashboard/stats', protect, getDashboardStats);
+
+// Clients (for selecting when creating appointment)
+router.get('/clients', protect, getClients);
 
 // Appointments
 router.get('/appointments', protect, getAppointments);

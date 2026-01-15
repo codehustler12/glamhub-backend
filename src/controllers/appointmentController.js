@@ -5,6 +5,80 @@ const User = require('../models/User');
 const mongoose = require('mongoose');
 const { validationResult } = require('express-validator');
 
+// @desc    Get all clients (for artist to select when creating appointment)
+// @route   GET /api/artist/clients
+// @access  Private (Artist only)
+exports.getClients = async (req, res, next) => {
+  try {
+    if (req.user.role !== 'artist') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only artists can access clients list'
+      });
+    }
+
+    const { page = 1, limit = 20, search } = req.query;
+
+    // Build filter - only get users with role 'user'
+    const filter = {
+      role: 'user',
+      isActive: true
+    };
+
+    // Search filter (name, email, phone, username)
+    if (search) {
+      filter.$or = [
+        { firstName: { $regex: search, $options: 'i' } },
+        { lastName: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { phone: { $regex: search, $options: 'i' } },
+        { username: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    // Pagination
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
+
+    // Get clients
+    const clients = await User.find(filter)
+      .select('firstName lastName username email phone avatar createdAt')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNum);
+
+    const total = await User.countDocuments(filter);
+
+    // Format response
+    const formattedClients = clients.map(client => ({
+      _id: client._id,
+      id: client._id.toString(),
+      fullName: `${client.firstName} ${client.lastName}`,
+      firstName: client.firstName,
+      lastName: client.lastName,
+      username: client.username,
+      email: client.email,
+      phone: client.phone || '',
+      avatar: client.avatar || '',
+      createdAt: client.createdAt
+    }));
+
+    res.status(200).json({
+      success: true,
+      count: formattedClients.length,
+      total,
+      page: pageNum,
+      pages: Math.ceil(total / limitNum),
+      data: {
+        clients: formattedClients
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Get dashboard stats for artist
 // @route   GET /api/artist/dashboard/stats
 // @access  Private (Artist only)
