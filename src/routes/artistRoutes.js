@@ -34,6 +34,15 @@ const {
   getReview
 } = require('../controllers/reviewController');
 
+// Messages
+const {
+  sendMessage,
+  getConversations,
+  getMessages,
+  markAsRead
+} = require('../controllers/messageController');
+const { sendMessageValidator } = require('../validators/messageValidator');
+
 // Dashboard Stats
 router.get('/dashboard/stats', protect, getDashboardStats);
 
@@ -59,5 +68,11 @@ router.delete('/vacations/:id', protect, deleteVacation);
 // Reviews
 router.get('/reviews', getReviews); // Can be public with artistId query
 router.get('/reviews/:id', getReview);
+
+// Message routes
+router.post('/messages', protect, sendMessageValidator, sendMessage);
+router.get('/messages/conversations', protect, getConversations);
+router.get('/messages/:appointmentId', protect, getMessages);
+router.put('/messages/:appointmentId/read', protect, markAsRead);
 
 module.exports = router;

@@ -1746,6 +1746,164 @@
 					}
 				},
 				{
+					"name": "Messages",
+					"item": [
+						{
+							"name": "Send Message",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{authToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"receiverId\": \"CLIENT_ID_HERE\",\n  \"appointmentId\": \"APPOINTMENT_ID_HERE\",\n  \"message\": \"Hello! I received your booking request.\"\n}"
+								},
+								"url": {
+									"raw": "http://api.adwebtest.online/api/artist/messages",
+									"protocol": "http",
+									"host": [
+										"api",
+										"adwebtest",
+										"online"
+									],
+									"path": [
+										"api",
+										"artist",
+										"messages"
+									]
+								},
+								"description": "Send a message to a client. Artist can only message clients for their own appointments."
+							}
+						},
+						{
+							"name": "Get Conversations",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{authToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://api.adwebtest.online/api/artist/messages/conversations",
+									"protocol": "http",
+									"host": [
+										"api",
+										"adwebtest",
+										"online"
+									],
+									"path": [
+										"api",
+										"artist",
+										"messages",
+										"conversations"
+									]
+								},
+								"description": "Get all conversations (list of clients you've messaged)."
+							}
+						},
+						{
+							"name": "Get Messages",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{authToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://api.adwebtest.online/api/artist/messages/APPOINTMENT_ID_HERE?page=1&limit=50",
+									"protocol": "http",
+									"host": [
+										"api",
+										"adwebtest",
+										"online"
+									],
+									"path": [
+										"api",
+										"artist",
+										"messages",
+										"APPOINTMENT_ID_HERE"
+									],
+									"query": [
+										{
+											"key": "page",
+											"value": "1",
+											"description": "Page number (default: 1)"
+										},
+										{
+											"key": "limit",
+											"value": "50",
+											"description": "Messages per page (default: 50)"
+										}
+									]
+								},
+								"description": "Get all messages for a specific appointment conversation."
+							}
+						},
+						{
+							"name": "Mark Messages as Read",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{authToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "PUT",
+								"header": [],
+								"url": {
+									"raw": "http://api.adwebtest.online/api/artist/messages/APPOINTMENT_ID_HERE/read",
+									"protocol": "http",
+									"host": [
+										"api",
+										"adwebtest",
+										"online"
+									],
+									"path": [
+										"api",
+										"artist",
+										"messages",
+										"APPOINTMENT_ID_HERE",
+										"read"
+									]
+								},
+								"description": "Mark all unread messages as read for a specific appointment."
+							}
+						}
+					]
+				},
+				{
 					"name": "Get Services by Artist (Public)",
 					"request": {
 						"method": "GET",
@@ -2396,6 +2554,164 @@
 								},
 								"description": "Request a refund for a paid booking."
 							}
+						},
+						{
+							"name": "Messages",
+							"item": [
+								{
+									"name": "Send Message",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{authToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "POST",
+										"header": [
+											{
+												"key": "Content-Type",
+												"value": "application/json"
+											}
+										],
+										"body": {
+											"mode": "raw",
+											"raw": "{\n  \"receiverId\": \"ARTIST_ID_HERE\",\n  \"appointmentId\": \"APPOINTMENT_ID_HERE\",\n  \"message\": \"Hello! I would like to discuss my booking.\"\n}"
+										},
+										"url": {
+											"raw": "http://api.adwebtest.online/api/client/messages",
+											"protocol": "http",
+											"host": [
+												"api",
+												"adwebtest",
+												"online"
+											],
+											"path": [
+												"api",
+												"client",
+												"messages"
+											]
+										},
+										"description": "Send a message to an artist. Client can only message artists for appointments they have created."
+									}
+								},
+								{
+									"name": "Get Conversations",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{authToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "http://api.adwebtest.online/api/client/messages/conversations",
+											"protocol": "http",
+											"host": [
+												"api",
+												"adwebtest",
+												"online"
+											],
+											"path": [
+												"api",
+												"client",
+												"messages",
+												"conversations"
+											]
+										},
+										"description": "Get all conversations (list of artists you've messaged)."
+									}
+								},
+								{
+									"name": "Get Messages",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{authToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "http://api.adwebtest.online/api/client/messages/APPOINTMENT_ID_HERE?page=1&limit=50",
+											"protocol": "http",
+											"host": [
+												"api",
+												"adwebtest",
+												"online"
+											],
+											"path": [
+												"api",
+												"client",
+												"messages",
+												"APPOINTMENT_ID_HERE"
+											],
+											"query": [
+												{
+													"key": "page",
+													"value": "1",
+													"description": "Page number (default: 1)"
+												},
+												{
+													"key": "limit",
+													"value": "50",
+													"description": "Messages per page (default: 50)"
+												}
+											]
+										},
+										"description": "Get all messages for a specific appointment conversation."
+									}
+								},
+								{
+									"name": "Mark Messages as Read",
+									"request": {
+										"auth": {
+											"type": "bearer",
+											"bearer": [
+												{
+													"key": "token",
+													"value": "{{authToken}}",
+													"type": "string"
+												}
+											]
+										},
+										"method": "PUT",
+										"header": [],
+										"url": {
+											"raw": "http://api.adwebtest.online/api/client/messages/APPOINTMENT_ID_HERE/read",
+											"protocol": "http",
+											"host": [
+												"api",
+												"adwebtest",
+												"online"
+											],
+											"path": [
+												"api",
+												"client",
+												"messages",
+												"APPOINTMENT_ID_HERE",
+												"read"
+											]
+										},
+										"description": "Mark all unread messages as read for a specific appointment."
+									}
+								}
+							]
 						}
 					]
 				}
