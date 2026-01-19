@@ -3,6 +3,7 @@ const Review = require('../models/Review');
 const Favorite = require('../models/Favorite');
 const User = require('../models/User');
 const Service = require('../models/Service');
+const mongoose = require('mongoose');
 const { validationResult } = require('express-validator');
 
 // ============================================
@@ -31,7 +32,6 @@ exports.getMyBookings = async (req, res, next) => {
     }
     if (artistId) {
       // Validate artistId format
-      const mongoose = require('mongoose');
       if (mongoose.Types.ObjectId.isValid(artistId)) {
         filter.artistId = new mongoose.Types.ObjectId(artistId);
       } else {
