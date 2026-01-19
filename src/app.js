@@ -19,6 +19,7 @@ const app = express();
 // CORS Configuration
 const allowedOrigins = [
   'http://localhost:3000',
+  'http://localhost:3001',
   'http://adwebtest.online',
   'https://adwebtest.online',
   'http://www.adwebtest.online',
