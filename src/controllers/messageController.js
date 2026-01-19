@@ -116,7 +116,7 @@ exports.sendMessage = async (req, res, next) => {
   }
 };
 
-// @desc    Get all conversations (list of people you've messaged)
+// @desc    Get all conversations (list of people you've messaged or have appointments with)
 // @route   GET /api/client/messages/conversations OR /api/artist/messages/conversations
 // @access  Private
 exports.getConversations = async (req, res, next) => {
@@ -124,92 +124,68 @@ exports.getConversations = async (req, res, next) => {
     const userId = req.user.id;
     const userRole = req.user.role;
 
-    // Get all unique conversations (people you've messaged or received messages from)
-    const conversations = await Message.aggregate([
-      {
-        $match: {
-          $or: [
-            { senderId: new mongoose.Types.ObjectId(userId) },
-            { receiverId: new mongoose.Types.ObjectId(userId) }
-          ]
-        }
-      },
-      {
-        $sort: { createdAt: -1 }
-      },
-      {
-        $group: {
-          _id: {
-            $cond: [
-              { $eq: ['$senderId', new mongoose.Types.ObjectId(userId)] },
-              '$receiverId',
-              '$senderId'
-            ]
-          },
-          appointmentId: { $first: '$appointmentId' },
-          lastMessage: { $first: '$message' },
-          lastMessageTime: { $first: '$createdAt' },
-          unreadCount: {
-            $sum: {
-              $cond: [
-                {
-                  $and: [
-                    { $eq: ['$receiverId', new mongoose.Types.ObjectId(userId)] },
-                    { $eq: ['$isRead', false] }
-                  ]
-                },
-                1,
-                0
-              ]
-            }
-          }
-        }
-      },
-      {
-        $lookup: {
-          from: 'users',
-          localField: '_id',
-          foreignField: '_id',
-          as: 'user'
-        }
-      },
-      {
-        $unwind: '$user'
-      },
-      {
-        $lookup: {
-          from: 'appointments',
-          localField: 'appointmentId',
-          foreignField: '_id',
-          as: 'appointment'
-        }
-      },
-      {
-        $unwind: {
-          path: '$appointment',
-          preserveNullAndEmptyArrays: true
-        }
-      },
-      {
-        $project: {
-          _id: 0,
-          userId: '$user._id',
-          firstName: '$user.firstName',
-          lastName: '$user.lastName',
-          username: '$user.username',
-          avatar: '$user.avatar',
-          appointmentId: '$appointmentId',
-          appointmentDate: '$appointment.appointmentDate',
-          appointmentTime: '$appointment.appointmentTime',
-          lastMessage: 1,
-          lastMessageTime: 1,
-          unreadCount: 1
-        }
-      },
-      {
-        $sort: { lastMessageTime: -1 }
+    // Build appointment filter based on user role
+    const appointmentFilter = userRole === 'user' 
+      ? { clientId: new mongoose.Types.ObjectId(userId) }
+      : { artistId: new mongoose.Types.ObjectId(userId) };
+
+    // Get all appointments for this user
+    const appointments = await Appointment.find(appointmentFilter)
+      .select('_id clientId artistId appointmentDate appointmentTime status')
+      .populate(userRole === 'user' ? 'artistId' : 'clientId', 'firstName lastName username avatar')
+      .sort({ appointmentDate: -1, appointmentTime: -1 });
+
+    // Get all messages for these appointments
+    const appointmentIds = appointments.map(apt => apt._id);
+    const messages = await Message.find({
+      appointmentId: { $in: appointmentIds }
+    })
+      .sort({ createdAt: -1 });
+
+    // Create a map of appointmentId -> messages
+    const messagesByAppointment = {};
+    const unreadCountByAppointment = {};
+    
+    messages.forEach(msg => {
+      const aptId = msg.appointmentId.toString();
+      if (!messagesByAppointment[aptId]) {
+        messagesByAppointment[aptId] = [];
+        unreadCountByAppointment[aptId] = 0;
       }
-    ]);
+      messagesByAppointment[aptId].push(msg);
+      if (msg.receiverId.toString() === userId && !msg.isRead) {
+        unreadCountByAppointment[aptId]++;
+      }
+    });
+
+    // Build conversations array - one conversation per appointment
+    const conversations = appointments.map(appointment => {
+      const otherUser = userRole === 'user' 
+        ? appointment.artistId
+        : appointment.clientId;
+
+      const aptId = appointment._id.toString();
+      const appointmentMessages = messagesByAppointment[aptId] || [];
+      const lastMessage = appointmentMessages.length > 0 ? appointmentMessages[0] : null;
+
+      return {
+        userId: otherUser._id,
+        firstName: otherUser.firstName,
+        lastName: otherUser.lastName,
+        username: otherUser.username,
+        avatar: otherUser.avatar || '',
+        appointmentId: appointment._id,
+        appointmentDate: appointment.appointmentDate,
+        appointmentTime: appointment.appointmentTime,
+        status: appointment.status,
+        lastMessage: lastMessage ? lastMessage.message : null,
+        lastMessageTime: lastMessage ? lastMessage.createdAt : appointment.createdAt,
+        unreadCount: unreadCountByAppointment[aptId] || 0
+      };
+    });
+
+    // Sort by lastMessageTime (most recent first)
+    conversations.sort((a, b) => new Date(b.lastMessageTime) - new Date(a.lastMessageTime));
 
     res.status(200).json({
       success: true,
