@@ -22,12 +22,24 @@ exports.getMyBookings = async (req, res, next) => {
     }
 
     const clientId = req.user.id;
-    const { status, page = 1, limit = 10 } = req.query;
+    const { status, artistId, page = 1, limit = 10 } = req.query;
 
     // Build filter
     const filter = { clientId };
     if (status && status !== 'all') {
       filter.status = status;
+    }
+    if (artistId) {
+      // Validate artistId format
+      const mongoose = require('mongoose');
+      if (mongoose.Types.ObjectId.isValid(artistId)) {
+        filter.artistId = new mongoose.Types.ObjectId(artistId);
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid artist ID format'
+        });
+      }
     }
 
     // Pagination
