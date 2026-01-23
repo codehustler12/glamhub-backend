@@ -129,9 +129,9 @@ exports.getArtistDetails = async (req, res, next) => {
       });
     }
 
-    // Get artist
+    // Get artist (include role field to verify it's an artist)
     const artist = await User.findById(artistId)
-      .select('firstName lastName username email phone avatar city description hasStudio address portfolioImages approvalStatus rejectionReason approvedAt approvedBy createdAt updatedAt')
+      .select('firstName lastName username email phone avatar city description hasStudio address portfolioImages approvalStatus rejectionReason approvedAt approvedBy createdAt updatedAt role')
       .populate('approvedBy', 'firstName lastName username');
 
     if (!artist || artist.role !== 'artist') {
