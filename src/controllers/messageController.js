@@ -239,8 +239,8 @@ exports.getMessages = async (req, res, next) => {
 
     // Get messages for this appointment
     const messages = await Message.find({ appointmentId })
-      .populate('senderId', 'firstName lastName username avatar')
-      .populate('receiverId', 'firstName lastName username avatar')
+      .populate('senderId', 'firstName lastName username avatar role')
+      .populate('receiverId', 'firstName lastName username avatar role')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limitNum);
@@ -284,9 +284,36 @@ exports.getMessages = async (req, res, next) => {
     const otherParticipant = await User.findById(otherParticipantId)
       .select('firstName lastName username avatar');
 
+    // Format messages with isSentByMe flag for easier frontend handling
+    const formattedMessages = messages.reverse().map(msg => ({
+      _id: msg._id,
+      message: msg.message,
+      sender: {
+        _id: msg.senderId._id,
+        firstName: msg.senderId.firstName,
+        lastName: msg.senderId.lastName,
+        username: msg.senderId.username,
+        avatar: msg.senderId.avatar || '',
+        role: msg.senderId.role
+      },
+      receiver: {
+        _id: msg.receiverId._id,
+        firstName: msg.receiverId.firstName,
+        lastName: msg.receiverId.lastName,
+        username: msg.receiverId.username,
+        avatar: msg.receiverId.avatar || '',
+        role: msg.receiverId.role
+      },
+      isSentByMe: msg.senderId._id.toString() === userId,
+      isRead: msg.isRead,
+      readAt: msg.readAt,
+      createdAt: msg.createdAt,
+      updatedAt: msg.updatedAt
+    }));
+
     res.status(200).json({
       success: true,
-      count: messages.length,
+      count: formattedMessages.length,
       total,
       page: pageNum,
       pages: Math.ceil(total / limitNum),
@@ -294,10 +321,19 @@ exports.getMessages = async (req, res, next) => {
         appointment: {
           _id: appointment._id,
           appointmentDate: appointment.appointmentDate,
-          appointmentTime: appointment.appointmentTime
+          appointmentTime: appointment.appointmentTime,
+          status: appointment.status
         },
         participant: otherParticipant,
-        messages: messages.reverse() // Reverse to show oldest first
+        currentUser: {
+          _id: req.user.id,
+          firstName: req.user.firstName,
+          lastName: req.user.lastName,
+          username: req.user.username,
+          avatar: req.user.avatar || '',
+          role: req.user.role
+        },
+        messages: formattedMessages
       }
     });
   } catch (error) {
