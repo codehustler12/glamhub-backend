@@ -56,11 +56,10 @@ async function createAdmin() {
       process.exit(0);
     }
 
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    adminData.password = await bcrypt.hash(adminData.password, salt);
+    // Set password as plain text - Mongoose pre-save hook will hash it
+    // adminData.password is already set to plain password
 
-    // Create admin user
+    // Create admin user (Mongoose will hash password via pre-save hook)
     const admin = await User.create(adminData);
 
     console.log('\n✅ Admin user created successfully!');

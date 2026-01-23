@@ -36,12 +36,8 @@ async function resetAdminPassword() {
     console.log(`   Username: ${admin.username}`);
     console.log(`   Role: ${admin.role}`);
 
-    // Hash new password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(newPassword, salt);
-
-    // Update password
-    admin.password = hashedPassword;
+    // Set password as plain text - Mongoose pre-save hook will hash it
+    admin.password = newPassword;
     admin.approvalStatus = 'approved';
     admin.isActive = true;
     await admin.save();
@@ -53,9 +49,9 @@ async function resetAdminPassword() {
     console.log(`   Password: ${newPassword}`);
     console.log('\n⚠️  Please change the password after first login!');
 
-    // Verify password works by fetching fresh from DB
+    // Verify password works by fetching fresh from DB and using comparePassword method
     const verifyAdmin = await User.findById(admin._id).select('+password');
-    const testMatch = await bcrypt.compare(newPassword, verifyAdmin.password);
+    const testMatch = await verifyAdmin.comparePassword(newPassword);
     if (testMatch) {
       console.log('\n✅ Password verification test: PASSED');
     } else {
