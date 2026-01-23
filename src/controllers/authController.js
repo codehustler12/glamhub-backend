@@ -48,7 +48,7 @@ exports.register = async (req, res, next) => {
     }
 
     // Create user
-    const user = await User.create({
+    const userData = {
       firstName,
       lastName,
       username,
@@ -56,10 +56,46 @@ exports.register = async (req, res, next) => {
       password,
       role: role || 'user',
       agreeToPrivacyPolicy: agreeToPrivacyPolicy || false
-    });
+    };
+
+    // Set approval status: artists need approval, others are auto-approved
+    if (role === 'artist') {
+      userData.approvalStatus = 'pending';
+    } else {
+      userData.approvalStatus = 'approved';
+    }
+
+    const user = await User.create(userData);
+
+    // If artist registered, send notification email to admin
+    if (role === 'artist') {
+      try {
+        const { sendArtistRegistrationNotification } = require('../services/emailService');
+        const adminEmail = process.env.ADMIN_EMAIL; // Set this in .env
+        
+        if (adminEmail) {
+          await sendArtistRegistrationNotification(adminEmail, {
+            firstName: user.firstName,
+            lastName: user.lastName,
+            username: user.username,
+            email: user.email,
+            phone: user.phone,
+            city: user.city,
+            createdAt: user.createdAt
+          });
+        }
+      } catch (emailError) {
+        console.error('Failed to send admin notification:', emailError);
+        // Don't fail registration if email fails
+      }
+    }
 
     // Send token response
-    sendToken(user, 201, res, 'Account created successfully');
+    const message = role === 'artist' 
+      ? 'Account created successfully. Your account is under review and will be activated once approved by admin.'
+      : 'Account created successfully';
+    
+    sendToken(user, 201, res, message);
   } catch (error) {
     next(error);
   }
@@ -108,6 +144,31 @@ exports.login = async (req, res, next) => {
         success: false,
         message: 'Your account has been deactivated. Please contact support.'
       });
+    }
+
+    // Check approval status for artists
+    if (user.role === 'artist') {
+      if (user.approvalStatus === 'pending') {
+        return res.status(403).json({
+          success: false,
+          message: 'Your account is under review. Please wait for admin approval.',
+          data: {
+            approvalStatus: 'pending'
+          }
+        });
+      }
+      if (user.approvalStatus === 'rejected') {
+        return res.status(403).json({
+          success: false,
+          message: user.rejectionReason 
+            ? `Your account registration was rejected. Reason: ${user.rejectionReason}` 
+            : 'Your account registration was rejected. Please contact support for more information.',
+          data: {
+            approvalStatus: 'rejected',
+            rejectionReason: user.rejectionReason
+          }
+        });
+      }
     }
 
     // Check if password matches

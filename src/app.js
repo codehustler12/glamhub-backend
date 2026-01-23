@@ -12,6 +12,7 @@ const portfolioRoutes = require('./routes/portfolioRoutes');
 const artistRoutes = require('./routes/artistRoutes');
 const clientRoutes = require('./routes/clientRoutes');
 const publicRoutes = require('./routes/publicRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 const path = require('path');
 
 const app = express();
@@ -66,6 +67,7 @@ app.use('/api/services', serviceRoutes);
 app.use('/api/portfolio', portfolioRoutes);
 app.use('/api/artist', artistRoutes);
 app.use('/api/client', clientRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api', publicRoutes); // Public routes (artists listing, profiles, availability)
 
 // Health check route

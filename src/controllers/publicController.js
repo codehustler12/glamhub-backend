@@ -21,10 +21,11 @@ exports.getArtists = async (req, res, next) => {
       sortBy = 'rating' // rating, price, newest
     } = req.query;
 
-    // Build filter - only show active artists
+    // Build filter - only show active and approved artists
     const filter = {
       role: 'artist',
-      isActive: true
+      isActive: true,
+      approvalStatus: 'approved' // Only show approved artists to public
     };
 
     // City filter
