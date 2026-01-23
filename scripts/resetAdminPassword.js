@@ -53,12 +53,14 @@ async function resetAdminPassword() {
     console.log(`   Password: ${newPassword}`);
     console.log('\n⚠️  Please change the password after first login!');
 
-    // Verify password works
-    const testMatch = await bcrypt.compare(newPassword, admin.password);
+    // Verify password works by fetching fresh from DB
+    const verifyAdmin = await User.findById(admin._id).select('+password');
+    const testMatch = await bcrypt.compare(newPassword, verifyAdmin.password);
     if (testMatch) {
       console.log('\n✅ Password verification test: PASSED');
     } else {
-      console.log('\n⚠️  Password verification test: FAILED (this shouldn\'t happen)');
+      console.log('\n⚠️  Password verification test: FAILED');
+      console.log('   Note: Password was saved, but verification failed. Try logging in anyway.');
     }
 
     await mongoose.disconnect();
