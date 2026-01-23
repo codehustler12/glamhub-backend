@@ -187,11 +187,12 @@ exports.getArtistProfile = async (req, res, next) => {
       });
     }
 
-    // Get artist - only active artists
+    // Get artist - only active and approved artists
     const artist = await User.findOne({
       _id: artistId,
       role: 'artist',
-      isActive: true
+      isActive: true,
+      approvalStatus: 'approved' // Only show approved artists
     }).select('firstName lastName username email avatar city description portfolioImages hasStudio address createdAt');
 
     if (!artist) {
