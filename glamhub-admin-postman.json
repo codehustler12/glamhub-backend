@@ -1,0 +1,242 @@
+{
+	"info": {
+		"_postman_id": "glamhub-admin-api",
+		"name": "Glamhub Admin API",
+		"description": "Admin endpoints for managing artist approvals and platform administration",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Dashboard Stats",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{authToken}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://api.adwebtest.online/api/admin/dashboard/stats",
+					"protocol": "http",
+					"host": [
+						"api",
+						"adwebtest",
+						"online"
+					],
+					"path": [
+						"api",
+						"admin",
+						"dashboard",
+						"stats"
+					]
+				},
+				"description": "Get admin dashboard statistics: Total artists (pending, approved, rejected), total clients, appointments, services"
+			}
+		},
+		{
+			"name": "Artists Management",
+			"item": [
+				{
+					"name": "Get All Artists",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://api.adwebtest.online/api/admin/artists?approvalStatus=pending&page=1&limit=20&sortBy=createdAt&sortOrder=desc",
+							"protocol": "http",
+							"host": [
+								"api",
+								"adwebtest",
+								"online"
+							],
+							"path": [
+								"api",
+								"admin",
+								"artists"
+							],
+							"query": [
+								{
+									"key": "approvalStatus",
+									"value": "pending",
+									"description": "Filter by approval status: pending, approved, rejected, or 'all'"
+								},
+								{
+									"key": "search",
+									"value": "",
+									"description": "Search by name, email, username, or city",
+									"disabled": true
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "20"
+								},
+								{
+									"key": "sortBy",
+									"value": "createdAt",
+									"description": "Sort by: createdAt, firstName, lastName"
+								},
+								{
+									"key": "sortOrder",
+									"value": "desc",
+									"description": "asc or desc"
+								}
+							]
+						},
+						"description": "Get all artists with filters. Use approvalStatus=pending to see artists awaiting approval."
+					}
+				},
+				{
+					"name": "Get Artist Details",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://api.adwebtest.online/api/admin/artists/ARTIST_ID_HERE",
+							"protocol": "http",
+							"host": [
+								"api",
+								"adwebtest",
+								"online"
+							],
+							"path": [
+								"api",
+								"admin",
+								"artists",
+								"ARTIST_ID_HERE"
+							]
+						},
+						"description": "Get complete artist details including profile, services, stats (appointments, reviews, ratings)"
+					}
+				},
+				{
+					"name": "Approve Artist",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "http://api.adwebtest.online/api/admin/artists/ARTIST_ID_HERE/approve",
+							"protocol": "http",
+							"host": [
+								"api",
+								"adwebtest",
+								"online"
+							],
+							"path": [
+								"api",
+								"admin",
+								"artists",
+								"ARTIST_ID_HERE",
+								"approve"
+							]
+						},
+						"description": "Approve an artist. This will send an approval email to the artist and allow them to login."
+					}
+				},
+				{
+					"name": "Reject Artist",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"rejectionReason\": \"Profile incomplete or does not meet our standards.\"\n}"
+						},
+						"url": {
+							"raw": "http://api.adwebtest.online/api/admin/artists/ARTIST_ID_HERE/reject",
+							"protocol": "http",
+							"host": [
+								"api",
+								"adwebtest",
+								"online"
+							],
+							"path": [
+								"api",
+								"admin",
+								"artists",
+								"ARTIST_ID_HERE",
+								"reject"
+							]
+						},
+						"description": "Reject an artist. Optionally provide rejectionReason (max 500 chars). This will send a rejection email to the artist."
+					}
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://api.adwebtest.online/api",
+			"type": "string"
+		},
+		{
+			"key": "authToken",
+			"value": "",
+			"type": "string"
+		}
+	]
+}
