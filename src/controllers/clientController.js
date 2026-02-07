@@ -214,6 +214,8 @@ exports.createBooking = async (req, res, next) => {
 
     // If payment method is 'pay_now', create payment intent (only if Stripe is configured)
     let paymentIntent = null;
+    let stripeConfigured = false;
+    let stripeError = null;
     if (paymentMethod === 'pay_now') {
       try {
         const { createPaymentIntent } = require('../services/stripeService');
@@ -230,31 +232,39 @@ exports.createBooking = async (req, res, next) => {
             clientSecret: paymentResult.clientSecret,
             paymentIntentId: paymentResult.paymentIntentId
           };
+          stripeConfigured = true;
         } else {
-          // Stripe not configured - return warning but still create booking
-          console.warn('Stripe not configured. Booking created but payment cannot be processed online.');
+          stripeError = paymentResult.error || 'Stripe payment intent could not be created';
+          console.warn('Stripe payment intent failed:', stripeError);
         }
       } catch (error) {
-        // Stripe module not installed or not configured
-        console.warn('Stripe service not available:', error.message);
-        // Still create booking, but payment will need to be handled manually
+        stripeError = error.message || 'Stripe service error';
+        console.warn('Stripe service not available:', stripeError);
       }
     }
 
     // Determine response message based on payment status
     let responseMessage = 'Booking created successfully';
     if (paymentMethod === 'pay_now' && !paymentIntent) {
-      responseMessage = 'Booking created successfully. Payment integration pending - payment can be processed later when Stripe is configured.';
+      responseMessage = stripeError
+        ? `Booking created successfully. Payment could not be started: ${stripeError}`
+        : 'Booking created successfully. Payment integration pending - payment can be processed later when Stripe is configured.';
+    }
+
+    const data = {
+      booking: appointment,
+      paymentIntent: paymentIntent || null,
+      paymentPending: paymentMethod === 'pay_now' && !paymentIntent
+    };
+    if (paymentMethod === 'pay_now') {
+      data.stripeConfigured = !!paymentIntent;
+      if (stripeError) data.stripeError = stripeError;
     }
 
     res.status(201).json({
       success: true,
       message: responseMessage,
-      data: {
-        booking: appointment,
-        paymentIntent: paymentIntent || null, // Only included if paymentMethod is 'pay_now' and Stripe is configured
-        paymentPending: paymentMethod === 'pay_now' && !paymentIntent // Flag to indicate payment needs to be processed later
-      }
+      data
     });
   } catch (error) {
     next(error);
