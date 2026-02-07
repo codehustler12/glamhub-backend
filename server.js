@@ -1,6 +1,9 @@
+const path = require('path');
+// Load .env from project root (where server.js is), not from process cwd (PM2 may run from elsewhere)
+require('dotenv').config({ path: path.join(__dirname, '.env') });
+
 const app = require('./src/app');
 const connectDB = require('./src/config/db');
-require('dotenv').config();
 
 // Connect to Database
 connectDB();
