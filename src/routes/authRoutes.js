@@ -7,6 +7,7 @@ const {
   getMe,
   updateProfile,
   updatePassword,
+  deleteAccount,
   forgotPassword,
   resetPassword,
   checkUsername
@@ -30,5 +31,6 @@ router.post('/logout', protect, logout);
 router.get('/me', protect, getMe);
 router.put('/update-profile', protect, updateProfileValidator, updateProfile);
 router.put('/update-password', protect, updatePassword);
+router.delete('/account', protect, deleteAccount);
 
 module.exports = router;

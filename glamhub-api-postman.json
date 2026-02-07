@@ -433,6 +433,47 @@
 					}
 				},
 				{
+					"name": "Delete Account",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{authToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "http://api.adwebtest.online/api/auth/account",
+							"protocol": "http",
+							"host": [
+								"api",
+								"adwebtest",
+								"online"
+							],
+							"path": [
+								"api",
+								"auth",
+								"account"
+							]
+						},
+						"description": "Permanently delete the authenticated user's account. Requires current password in body. Account is soft-deleted (deactivated and anonymized)."
+					}
+				},
+				{
 					"name": "Forgot Password",
 					"request": {
 						"method": "POST",
@@ -2300,6 +2341,93 @@
 									]
 								},
 								"description": "Create a new review for an artist. appointmentId is optional but recommended for verified reviews."
+							}
+						},
+						{
+							"name": "Update Review",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{authToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"rating\": 5,\n  \"categories\": {\n    \"professionalism\": 4,\n    \"communication\": 5,\n    \"punctuality\": 5,\n    \"value\": 5\n  },\n  \"comment\": \"Updated comment. All fields are optional.\"\n}"
+								},
+								"url": {
+									"raw": "http://api.adwebtest.online/api/client/reviews/:id",
+									"protocol": "http",
+									"host": [
+										"api",
+										"adwebtest",
+										"online"
+									],
+									"path": [
+										"api",
+										"client",
+										"reviews",
+										":id"
+									],
+									"variable": [
+										{
+											"key": "id",
+											"value": "REVIEW_ID_HERE"
+										}
+									]
+								},
+								"description": "Update your own review. Client only. All body fields (rating, categories, comment) are optional."
+							}
+						},
+						{
+							"name": "Delete Review",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{authToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "http://api.adwebtest.online/api/client/reviews/:id",
+									"protocol": "http",
+									"host": [
+										"api",
+										"adwebtest",
+										"online"
+									],
+									"path": [
+										"api",
+										"client",
+										"reviews",
+										":id"
+									],
+									"variable": [
+										{
+											"key": "id",
+											"value": "REVIEW_ID_HERE"
+										}
+									]
+								},
+								"description": "Delete your own review. Client only."
 							}
 						}
 					]

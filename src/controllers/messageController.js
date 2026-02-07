@@ -116,7 +116,7 @@ exports.sendMessage = async (req, res, next) => {
   }
 };
 
-// @desc    Get all conversations (list of people you've messaged or have appointments with)
+// @desc    Get all conversations (one per artist/client pair, not per appointment)
 // @route   GET /api/client/messages/conversations OR /api/artist/messages/conversations
 // @access  Private
 exports.getConversations = async (req, res, next) => {
@@ -125,7 +125,7 @@ exports.getConversations = async (req, res, next) => {
     const userRole = req.user.role;
 
     // Build appointment filter based on user role
-    const appointmentFilter = userRole === 'user' 
+    const appointmentFilter = userRole === 'user'
       ? { clientId: new mongoose.Types.ObjectId(userId) }
       : { artistId: new mongoose.Types.ObjectId(userId) };
 
@@ -135,56 +135,76 @@ exports.getConversations = async (req, res, next) => {
       .populate(userRole === 'user' ? 'artistId' : 'clientId', 'firstName lastName username avatar')
       .sort({ appointmentDate: -1, appointmentTime: -1 });
 
-    // Get all messages for these appointments
     const appointmentIds = appointments.map(apt => apt._id);
+    if (appointmentIds.length === 0) {
+      return res.status(200).json({
+        success: true,
+        count: 0,
+        data: { conversations: [] }
+      });
+    }
+
+    // Get all messages for these appointments
     const messages = await Message.find({
       appointmentId: { $in: appointmentIds }
     })
       .sort({ createdAt: -1 });
 
-    // Create a map of appointmentId -> messages
-    const messagesByAppointment = {};
-    const unreadCountByAppointment = {};
-    
-    messages.forEach(msg => {
-      const aptId = msg.appointmentId.toString();
-      if (!messagesByAppointment[aptId]) {
-        messagesByAppointment[aptId] = [];
-        unreadCountByAppointment[aptId] = 0;
+    // Group by the other user (one conversation per artist-client pair)
+    const otherUserKey = (apt) => {
+      const other = userRole === 'user' ? apt.artistId : apt.clientId;
+      return (other && other._id ? other._id : other).toString();
+    };
+    const conversationByUser = {};
+
+    appointments.forEach(appointment => {
+      const key = otherUserKey(appointment);
+      const otherUser = userRole === 'user' ? appointment.artistId : appointment.clientId;
+      if (conversationByUser[key]) {
+        // Already have this user: add appointment to list and keep latest lastMessage
+        conversationByUser[key].appointments.push({
+          _id: appointment._id,
+          appointmentDate: appointment.appointmentDate,
+          appointmentTime: appointment.appointmentTime,
+          status: appointment.status
+        });
+        return;
       }
-      messagesByAppointment[aptId].push(msg);
-      if (msg.receiverId.toString() === userId && !msg.isRead) {
-        unreadCountByAppointment[aptId]++;
-      }
-    });
-
-    // Build conversations array - one conversation per appointment
-    const conversations = appointments.map(appointment => {
-      const otherUser = userRole === 'user' 
-        ? appointment.artistId
-        : appointment.clientId;
-
-      const aptId = appointment._id.toString();
-      const appointmentMessages = messagesByAppointment[aptId] || [];
-      const lastMessage = appointmentMessages.length > 0 ? appointmentMessages[0] : null;
-
-      return {
+      conversationByUser[key] = {
         userId: otherUser._id,
         firstName: otherUser.firstName,
         lastName: otherUser.lastName,
         username: otherUser.username,
         avatar: otherUser.avatar || '',
-        appointmentId: appointment._id,
-        appointmentDate: appointment.appointmentDate,
-        appointmentTime: appointment.appointmentTime,
-        status: appointment.status,
-        lastMessage: lastMessage ? lastMessage.message : null,
-        lastMessageTime: lastMessage ? lastMessage.createdAt : appointment.createdAt,
-        unreadCount: unreadCountByAppointment[aptId] || 0
+        appointments: [{
+          _id: appointment._id,
+          appointmentDate: appointment.appointmentDate,
+          appointmentTime: appointment.appointmentTime,
+          status: appointment.status
+        }],
+        lastMessage: null,
+        lastMessageTime: appointment.createdAt,
+        unreadCount: 0
       };
     });
 
-    // Sort by lastMessageTime (most recent first)
+    // Attach last message and unread count per user (across all their appointments)
+    messages.forEach(msg => {
+      const apt = appointments.find(a => a._id.toString() === msg.appointmentId.toString());
+      if (!apt) return;
+      const key = otherUserKey(apt);
+      const conv = conversationByUser[key];
+      if (!conv) return;
+      if (!conv.lastMessage || new Date(msg.createdAt) > new Date(conv.lastMessageTime)) {
+        conv.lastMessage = msg.message;
+        conv.lastMessageTime = msg.createdAt;
+      }
+      if (msg.receiverId.toString() === userId && !msg.isRead) {
+        conv.unreadCount += 1;
+      }
+    });
+
+    const conversations = Object.values(conversationByUser);
     conversations.sort((a, b) => new Date(b.lastMessageTime) - new Date(a.lastMessageTime));
 
     res.status(200).json({
@@ -199,7 +219,125 @@ exports.getConversations = async (req, res, next) => {
   }
 };
 
-// @desc    Get messages for a specific conversation
+// @desc    Get all messages with a user (one thread per artist-client, across all appointments)
+// @route   GET /api/client/messages/with/:userId OR /api/artist/messages/with/:userId
+// @access  Private
+exports.getMessagesWithUser = async (req, res, next) => {
+  try {
+    const { userId: otherUserId } = req.params;
+    const currentUserId = req.user.id;
+    const userRole = req.user.role;
+    const { page = 1, limit = 50 } = req.query;
+
+    const otherId = new mongoose.Types.ObjectId(otherUserId);
+
+    // Ensure the two users have at least one appointment together
+    const currentId = new mongoose.Types.ObjectId(currentUserId);
+    const appointmentFilter = userRole === 'user'
+      ? { clientId: currentId, artistId: otherId }
+      : { artistId: currentId, clientId: otherId };
+    const sharedAppointments = await Appointment.find(appointmentFilter).select('_id');
+    const appointmentIds = sharedAppointments.map(a => a._id);
+
+    if (appointmentIds.length === 0) {
+      return res.status(403).json({
+        success: false,
+        message: 'You have no appointments with this user'
+      });
+    }
+
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const skip = (pageNum - 1) * limitNum;
+
+    const messages = await Message.find({
+      appointmentId: { $in: appointmentIds }
+    })
+      .populate('senderId', 'firstName lastName username avatar role')
+      .populate('receiverId', 'firstName lastName username avatar role')
+      .populate('appointmentId', 'appointmentDate appointmentTime')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNum);
+
+    const total = await Message.countDocuments({
+      appointmentId: { $in: appointmentIds }
+    });
+
+    const unreadMessages = messages.filter(
+      msg => msg.receiverId._id.toString() === currentUserId && !msg.isRead
+    );
+    if (unreadMessages.length > 0) {
+      await Message.updateMany(
+        {
+          _id: { $in: unreadMessages.map(msg => msg._id) },
+          receiverId: currentUserId,
+          isRead: false
+        },
+        { $set: { isRead: true, readAt: new Date() } }
+      );
+      unreadMessages.forEach(msg => {
+        msg.isRead = true;
+        msg.readAt = new Date();
+      });
+    }
+
+    const otherParticipant = await User.findById(otherUserId)
+      .select('firstName lastName username avatar');
+
+    const formattedMessages = messages.reverse().map(msg => ({
+      _id: msg._id,
+      message: msg.message,
+      appointmentId: msg.appointmentId ? msg.appointmentId._id : null,
+      appointmentDate: msg.appointmentId ? msg.appointmentId.appointmentDate : null,
+      sender: {
+        _id: msg.senderId._id,
+        firstName: msg.senderId.firstName,
+        lastName: msg.senderId.lastName,
+        username: msg.senderId.username,
+        avatar: msg.senderId.avatar || '',
+        role: msg.senderId.role
+      },
+      receiver: {
+        _id: msg.receiverId._id,
+        firstName: msg.receiverId.firstName,
+        lastName: msg.receiverId.lastName,
+        username: msg.receiverId.username,
+        avatar: msg.receiverId.avatar || '',
+        role: msg.receiverId.role
+      },
+      isSentByMe: msg.senderId._id.toString() === currentUserId,
+      isRead: msg.isRead,
+      readAt: msg.readAt,
+      createdAt: msg.createdAt,
+      updatedAt: msg.updatedAt
+    }));
+
+    res.status(200).json({
+      success: true,
+      count: formattedMessages.length,
+      total,
+      page: pageNum,
+      pages: Math.ceil(total / limitNum),
+      data: {
+        participant: otherParticipant,
+        currentUser: {
+          _id: req.user.id,
+          firstName: req.user.firstName,
+          lastName: req.user.lastName,
+          username: req.user.username,
+          avatar: req.user.avatar || '',
+          role: req.user.role
+        },
+        messages: formattedMessages
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get messages for a specific conversation (by appointment)
 // @route   GET /api/client/messages/:appointmentId OR /api/artist/messages/:appointmentId
 // @access  Private
 exports.getMessages = async (req, res, next) => {

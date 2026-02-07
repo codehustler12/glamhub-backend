@@ -38,10 +38,17 @@ const {
 const {
   sendMessage,
   getConversations,
+  getMessagesWithUser,
   getMessages,
   markAsRead
 } = require('../controllers/messageController');
 const { sendMessageValidator } = require('../validators/messageValidator');
+
+// Payments (artist)
+const {
+  getArtistPaymentStats,
+  getArtistTransactions
+} = require('../controllers/paymentController');
 
 // Dashboard Stats
 router.get('/dashboard/stats', protect, getDashboardStats);
@@ -65,6 +72,10 @@ router.post('/vacations', protect, createVacationValidator, createVacation);
 router.get('/vacations', protect, getVacations);
 router.delete('/vacations/:id', protect, deleteVacation);
 
+// Payments (stats and transactions - must be before any /payments/:id)
+router.get('/payments/stats', protect, getArtistPaymentStats);
+router.get('/payments/transactions', protect, getArtistTransactions);
+
 // Reviews
 router.get('/reviews', getReviews); // Can be public with artistId query
 router.get('/reviews/:id', getReview);
@@ -72,6 +83,7 @@ router.get('/reviews/:id', getReview);
 // Message routes
 router.post('/messages', protect, sendMessageValidator, sendMessage);
 router.get('/messages/conversations', protect, getConversations);
+router.get('/messages/with/:userId', protect, getMessagesWithUser);
 router.get('/messages/:appointmentId', protect, getMessages);
 router.put('/messages/:appointmentId/read', protect, markAsRead);
 

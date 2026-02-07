@@ -246,3 +246,118 @@ exports.requestRefund = async (req, res, next) => {
     next(error);
   }
 };
+
+// @desc    Get artist payment stats (balance, earned, in transit)
+// @route   GET /api/artist/payments/stats
+// @access  Private (Artist only)
+exports.getArtistPaymentStats = async (req, res, next) => {
+  try {
+    if (req.user.role !== 'artist') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only artists can access payment stats'
+      });
+    }
+
+    const artistId = req.user.id;
+    const { period = 'all' } = req.query; // all, month, week
+
+    const match = { artistId };
+    if (period === 'month') {
+      const start = new Date();
+      start.setMonth(start.getMonth() - 1);
+      match.createdAt = { $gte: start };
+    } else if (period === 'week') {
+      const start = new Date();
+      start.setDate(start.getDate() - 7);
+      match.createdAt = { $gte: start };
+    }
+
+    const succeededDeposits = await Transaction.aggregate([
+      { $match: { ...match, type: 'deposit', status: 'succeeded' } },
+      { $group: { _id: null, total: { $sum: '$amount' } } }
+    ]);
+    const totalEarned = succeededDeposits.length > 0 ? succeededDeposits[0].total : 0;
+
+    const succeededRefunds = await Transaction.aggregate([
+      { $match: { ...match, type: 'refund', status: 'succeeded' } },
+      { $group: { _id: null, total: { $sum: '$amount' } } }
+    ]);
+    const totalRefunded = succeededRefunds.length > 0 ? succeededRefunds[0].total : 0;
+
+    const inTransitWithdrawals = await Transaction.aggregate([
+      { $match: { artistId, type: 'withdrawal', status: 'in_transit' } },
+      { $group: { _id: null, total: { $sum: '$amount' } } }
+    ]);
+    const payoutsInTransit = inTransitWithdrawals.length > 0 ? inTransitWithdrawals[0].total : 0;
+
+    const availableBalance = totalEarned - totalRefunded - payoutsInTransit;
+    const availableBalanceSafe = Math.max(0, availableBalance);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        availableBalance: Math.round(availableBalanceSafe * 100) / 100,
+        totalEarned: Math.round(totalEarned * 100) / 100,
+        totalRefunded: Math.round(totalRefunded * 100) / 100,
+        payoutsInTransit: Math.round(payoutsInTransit * 100) / 100,
+        period
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get artist transactions (paginated)
+// @route   GET /api/artist/payments/transactions
+// @access  Private (Artist only)
+exports.getArtistTransactions = async (req, res, next) => {
+  try {
+    if (req.user.role !== 'artist') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only artists can access transactions'
+      });
+    }
+
+    const artistId = req.user.id;
+    const { type = 'all', status: statusFilter = 'all', page = 1, limit = 20, startDate, endDate } = req.query;
+
+    const filter = { artistId };
+    if (type !== 'all') filter.type = type;
+    if (statusFilter !== 'all') filter.status = statusFilter;
+    if (startDate || endDate) {
+      filter.createdAt = {};
+      if (startDate) filter.createdAt.$gte = new Date(startDate);
+      if (endDate) filter.createdAt.$lte = new Date(endDate);
+    }
+
+    const pageNum = parseInt(page);
+    const limitNum = Math.min(parseInt(limit) || 20, 100);
+    const skip = (pageNum - 1) * limitNum;
+
+    const [transactions, total] = await Promise.all([
+      Transaction.find(filter)
+        .populate('clientId', 'firstName lastName username')
+        .populate('appointmentId', 'appointmentDate appointmentTime totalAmount')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limitNum),
+      Transaction.countDocuments(filter)
+    ]);
+
+    res.status(200).json({
+      success: true,
+      count: transactions.length,
+      total,
+      page: pageNum,
+      pages: Math.ceil(total / limitNum),
+      data: {
+        transactions
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};

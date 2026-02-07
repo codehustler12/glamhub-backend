@@ -6,6 +6,8 @@ const {
   createBooking,
   getMyReviews,
   createReview,
+  updateReview,
+  deleteReview,
   getMyFavorites,
   addFavorite,
   removeFavorite
@@ -18,11 +20,12 @@ const {
 const {
   sendMessage,
   getConversations,
+  getMessagesWithUser,
   getMessages,
   markAsRead
 } = require('../controllers/messageController');
 const { protect } = require('../middleware/auth');
-const { createReviewValidator } = require('../validators/reviewValidator');
+const { createReviewValidator, updateReviewValidator } = require('../validators/reviewValidator');
 const { createBookingValidator, processPaymentValidator, requestRefundValidator } = require('../validators/appointmentValidator');
 const { sendMessageValidator } = require('../validators/messageValidator');
 
@@ -34,6 +37,8 @@ router.post('/bookings', protect, createBookingValidator, createBooking);
 // Reviews routes
 router.get('/reviews', protect, getMyReviews);
 router.post('/reviews', protect, createReviewValidator, createReview);
+router.put('/reviews/:id', protect, updateReviewValidator, updateReview);
+router.delete('/reviews/:id', protect, deleteReview);
 
 // Favorites routes
 router.get('/favorites', protect, getMyFavorites);
@@ -48,6 +53,7 @@ router.post('/payments/refund', protect, requestRefundValidator, requestRefund);
 // Message routes
 router.post('/messages', protect, sendMessageValidator, sendMessage);
 router.get('/messages/conversations', protect, getConversations);
+router.get('/messages/with/:userId', protect, getMessagesWithUser);
 router.get('/messages/:appointmentId', protect, getMessages);
 router.put('/messages/:appointmentId/read', protect, markAsRead);
 

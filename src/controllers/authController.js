@@ -482,6 +482,46 @@ exports.resetPassword = async (req, res, next) => {
   }
 };
 
+// @desc    Delete account (soft delete - deactivates and anonymizes user)
+// @route   DELETE /api/auth/account
+// @access  Private
+exports.deleteAccount = async (req, res, next) => {
+  try {
+    const { password } = req.body;
+
+    const user = await User.findById(req.user.id).select('+password');
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Require password confirmation
+    const isMatch = await user.comparePassword(password || '');
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        message: 'Password is required and must be correct to delete your account'
+      });
+    }
+
+    // Soft delete: deactivate and anonymize so references (reviews, appointments) remain valid
+    user.isActive = false;
+    user.email = user.email ? `deleted-${user._id}@deleted.local` : null;
+    user.phone = '';
+    user.password = 'deleted'; // Invalidate login
+    await user.save({ validateBeforeSave: false });
+
+    res.status(200).json({
+      success: true,
+      message: 'Your account has been deleted successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Check if username is available
 // @route   GET /api/auth/check-username/:username
 // @access  Public
