@@ -104,6 +104,28 @@ exports.sendMessage = async (req, res, next) => {
       .populate('receiverId', 'firstName lastName username avatar')
       .populate('appointmentId', 'appointmentDate appointmentTime serviceId');
 
+    // Real-time: notify the receiver so their chat updates without reload
+    try {
+      const { getIO } = require('../socket');
+      const socketIO = getIO();
+      if (socketIO) {
+        const payload = {
+          _id: populatedMessage._id,
+          message: populatedMessage.message,
+          senderId: populatedMessage.senderId,
+          receiverId: populatedMessage.receiverId,
+          appointmentId: populatedMessage.appointmentId,
+          isRead: populatedMessage.isRead,
+          readAt: populatedMessage.readAt,
+          createdAt: populatedMessage.createdAt,
+          updatedAt: populatedMessage.updatedAt
+        };
+        socketIO.to(`user:${receiverId}`).emit('new_message', payload);
+      }
+    } catch (socketErr) {
+      console.warn('Socket emit failed (message still saved):', socketErr.message);
+    }
+
     res.status(201).json({
       success: true,
       message: 'Message sent successfully',
