@@ -126,10 +126,20 @@ exports.sendPhoneOTP = async (req, res, next) => {
     // Send OTP via SMS
     const smsResult = await sendOTPSMS(formattedPhone, otp);
 
+    if (!smsResult.success) {
+      const isGeoBlock = smsResult.code === 21408;
+      return res.status(500).json({
+        success: false,
+        message: isGeoBlock
+          ? 'SMS cannot be sent to this country yet. Please use email OTP or contact support.'
+          : (smsResult.error || 'Failed to send OTP. Please try again.')
+      });
+    }
+
     res.status(200).json({
       success: true,
-      message: smsResult.development 
-        ? 'SMS service not configured. Check console for OTP.' 
+      message: smsResult.development
+        ? 'SMS service not configured. Check console for OTP.'
         : 'OTP sent to your phone',
       data: {
         phone: formattedPhone.replace(/(\+\d{2})(\d{3})(\d+)(\d{2})/, '$1 $2 **** $4'),

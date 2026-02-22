@@ -40,14 +40,13 @@ const sendOTPSMS = async (phoneNumber, otp) => {
       messageId: message.sid
     };
   } catch (error) {
-    console.error('SMS sending error:', error);
-    // Log OTP to console for development/testing when SMS fails
-    console.log('⚠️ SMS failed - OTP for', phoneNumber, 'is:', otp);
+    console.error('SMS sending error:', error.message, '| Code:', error.code, '| To:', phoneNumber);
+    // Do not log the OTP (security). For 21408 see: https://www.twilio.com/docs/api/errors/21408
     return {
       success: false,
       error: error.message,
-      development: true,
-      otp: otp // Include OTP in response for development (remove in production)
+      code: error.code,
+      development: false
     };
   }
 };
