@@ -101,7 +101,8 @@ const appointmentSchema = new mongoose.Schema({
   },
   serviceType: {
     type: String,
-    enum: ['makeup', 'hair', 'nail', 'facial', 'bridal', 'party', 'other'],
+    trim: true,
+    maxlength: [50, 'Service type cannot exceed 50 characters'],
     default: 'other'
   },
   notes: {

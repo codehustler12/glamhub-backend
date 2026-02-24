@@ -21,8 +21,8 @@ const serviceSchema = new mongoose.Schema({
   serviceType: {
     type: String,
     required: [true, 'Service type is required'],
-    enum: ['makeup', 'hair', 'nail', 'facial', 'bridal', 'party', 'other'],
-    default: 'other'
+    trim: true,
+    maxlength: [50, 'Service type cannot exceed 50 characters']
   },
   priceType: {
     type: String,

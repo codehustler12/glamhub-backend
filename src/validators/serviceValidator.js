@@ -17,8 +17,9 @@ exports.createServiceValidator = [
   body('serviceType')
     .notEmpty()
     .withMessage('Service type is required')
-    .isIn(['makeup', 'hair', 'nail', 'facial', 'bridal', 'party', 'other'])
-    .withMessage('Service type must be one of: makeup, hair, nail, facial, bridal, party, other'),
+    .trim()
+    .isLength({ min: 1, max: 50 })
+    .withMessage('Service type must be between 1 and 50 characters'),
 
   body('priceType')
     .optional()
@@ -76,8 +77,9 @@ exports.updateServiceValidator = [
 
   body('serviceType')
     .optional()
-    .isIn(['makeup', 'hair', 'nail', 'facial', 'bridal', 'party', 'other'])
-    .withMessage('Service type must be one of: makeup, hair, nail, facial, bridal, party, other'),
+    .trim()
+    .isLength({ min: 1, max: 50 })
+    .withMessage('Service type must be between 1 and 50 characters'),
 
   body('priceType')
     .optional()
