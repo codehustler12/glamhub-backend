@@ -1,0 +1,99 @@
+{
+  "info": {
+    "_postman_id": "glamhub-client-cancel-booking",
+    "name": "Glamhub - Client Cancel Booking",
+    "description": "Cancel a booking (client). PUT /api/client/bookings/:id/cancel with optional cancellationReason.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Cancel Booking",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{authToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"cancellationReason\": \"Change of plans\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/client/bookings/:id/cancel",
+          "host": ["{{baseUrl}}"],
+          "path": ["client", "bookings", ":id", "cancel"],
+          "variable": [
+            {
+              "key": "id",
+              "value": "BOOKING_ID_HERE",
+              "description": "MongoDB _id of the booking to cancel"
+            }
+          ]
+        },
+        "description": "Cancel a booking as the client. Only the booking owner can cancel. Allowed when status is pending or confirmed. Optional body: cancellationReason (max 500 chars)."
+      }
+    },
+    {
+      "name": "Cancel Booking (no reason)",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{authToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/client/bookings/:id/cancel",
+          "host": ["{{baseUrl}}"],
+          "path": ["client", "bookings", ":id", "cancel"],
+          "variable": [
+            {
+              "key": "id",
+              "value": "BOOKING_ID_HERE"
+            }
+          ]
+        },
+        "description": "Cancel without providing a reason. Body can be empty {}."
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "authToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "baseUrl",
+      "value": "http://api.adwebtest.online/api",
+      "type": "string"
+    }
+  ]
+}
