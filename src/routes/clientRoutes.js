@@ -4,6 +4,7 @@ const {
   getMyBookings,
   getBookingById,
   createBooking,
+  cancelBooking,
   getMyReviews,
   createReview,
   updateReview,
@@ -26,13 +27,14 @@ const {
 } = require('../controllers/messageController');
 const { protect } = require('../middleware/auth');
 const { createReviewValidator, updateReviewValidator } = require('../validators/reviewValidator');
-const { createBookingValidator, processPaymentValidator, requestRefundValidator } = require('../validators/appointmentValidator');
+const { createBookingValidator, processPaymentValidator, requestRefundValidator, cancelBookingValidator } = require('../validators/appointmentValidator');
 const { sendMessageValidator } = require('../validators/messageValidator');
 
 // Bookings routes
 router.get('/bookings', protect, getMyBookings);
 router.get('/bookings/:id', protect, getBookingById);
 router.post('/bookings', protect, createBookingValidator, createBooking);
+router.put('/bookings/:id/cancel', protect, cancelBookingValidator, cancelBooking);
 
 // Reviews routes
 router.get('/reviews', protect, getMyReviews);

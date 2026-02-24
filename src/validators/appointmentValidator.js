@@ -14,6 +14,14 @@ exports.updateStatusValidator = [
     .withMessage('Cancellation reason cannot exceed 500 characters')
 ];
 
+exports.cancelBookingValidator = [
+  body('cancellationReason')
+    .optional()
+    .trim()
+    .isLength({ max: 500 })
+    .withMessage('Cancellation reason cannot exceed 500 characters')
+];
+
 exports.createBookingValidator = [
   body('artistId')
     .notEmpty()

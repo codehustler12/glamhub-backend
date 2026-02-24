@@ -114,6 +114,80 @@ exports.getBookingById = async (req, res, next) => {
   }
 };
 
+// @desc    Cancel a booking (client)
+// @route   PUT /api/client/bookings/:id/cancel
+// @access  Private (Client only - owner)
+exports.cancelBooking = async (req, res, next) => {
+  try {
+    if (req.user.role !== 'user') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only clients can cancel their bookings'
+      });
+    }
+
+    const appointment = await Appointment.findById(req.params.id);
+    if (!appointment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Booking not found'
+      });
+    }
+
+    if (appointment.clientId.toString() !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to cancel this booking'
+      });
+    }
+
+    if (appointment.status === 'cancelled') {
+      return res.status(400).json({
+        success: false,
+        message: 'Booking is already cancelled'
+      });
+    }
+
+    if (appointment.status === 'completed') {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot cancel a completed booking'
+      });
+    }
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation Error',
+        errors: errors.array()
+      });
+    }
+
+    const { cancellationReason } = req.body;
+    appointment.status = 'cancelled';
+    appointment.cancelledBy = 'client';
+    if (cancellationReason && cancellationReason.trim()) {
+      appointment.cancellationReason = cancellationReason.trim();
+    }
+    await appointment.save();
+
+    const populated = await Appointment.findById(appointment._id)
+      .populate('artistId', 'firstName lastName username avatar')
+      .populate('serviceId', 'serviceName serviceType price currency');
+
+    res.status(200).json({
+      success: true,
+      message: 'Booking cancelled successfully',
+      data: {
+        booking: populated
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Create a new booking
 // @route   POST /api/client/bookings
 // @access  Private (Client only)
