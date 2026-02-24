@@ -104,21 +104,20 @@ exports.sendMessage = async (req, res, next) => {
       .populate('receiverId', 'firstName lastName username avatar')
       .populate('appointmentId', 'appointmentDate appointmentTime serviceId');
 
-    // Real-time: notify the receiver so their chat updates without reload
+    // Real-time: emit to receiver (payload shape matches frontend NewMessagePayload)
     try {
       const { getIO } = require('../socket');
       const socketIO = getIO();
       if (socketIO) {
         const payload = {
-          _id: populatedMessage._id,
+          _id: populatedMessage._id.toString(),
           message: populatedMessage.message,
-          senderId: populatedMessage.senderId,
-          receiverId: populatedMessage.receiverId,
-          appointmentId: populatedMessage.appointmentId,
+          senderId: populatedMessage.senderId._id?.toString() || populatedMessage.senderId.toString(),
+          receiverId: populatedMessage.receiverId._id?.toString() || populatedMessage.receiverId.toString(),
+          appointmentId: (populatedMessage.appointmentId?._id || populatedMessage.appointmentId).toString(),
           isRead: populatedMessage.isRead,
-          readAt: populatedMessage.readAt,
-          createdAt: populatedMessage.createdAt,
-          updatedAt: populatedMessage.updatedAt
+          createdAt: populatedMessage.createdAt?.toISOString?.() || populatedMessage.createdAt,
+          updatedAt: populatedMessage.updatedAt?.toISOString?.() || populatedMessage.updatedAt
         };
         socketIO.to(`user:${receiverId}`).emit('new_message', payload);
       }

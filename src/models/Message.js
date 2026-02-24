@@ -40,5 +40,7 @@ const messageSchema = new mongoose.Schema({
 // Compound index for efficient conversation queries
 messageSchema.index({ senderId: 1, receiverId: 1, appointmentId: 1, createdAt: -1 });
 messageSchema.index({ receiverId: 1, isRead: 1 });
+// Fast GET messages by appointmentId (polled when chat is open)
+messageSchema.index({ appointmentId: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Message', messageSchema);
