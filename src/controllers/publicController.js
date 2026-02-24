@@ -5,6 +5,35 @@ const Appointment = require('../models/Appointment');
 const BlockedTime = require('../models/BlockedTime');
 const mongoose = require('mongoose');
 
+/** Parse time string to minutes since midnight. Supports "13:00", "01:00 PM", "16:00". */
+function timeToMinutes(timeStr) {
+  if (!timeStr || typeof timeStr !== 'string') return null;
+  const t = timeStr.trim();
+  const m24 = t.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*$/);
+  if (m24) return parseInt(m24[1], 10) * 60 + parseInt(m24[2], 10);
+  const m12 = t.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)$/i);
+  if (m12) {
+    let h = parseInt(m12[1], 10);
+    const min = parseInt(m12[2], 10);
+    if (m12[4].toUpperCase() === 'PM' && h !== 12) h += 12;
+    if (m12[4].toUpperCase() === 'AM' && h === 12) h = 0;
+    return h * 60 + min;
+  }
+  return null;
+}
+
+/** Parse duration string to minutes. Supports "2 hours", "30 minutes". */
+function parseDurationToMinutes(durationStr) {
+  if (!durationStr || typeof durationStr !== 'string') return 0;
+  const d = durationStr.trim();
+  const hMatch = d.match(/(\d+)\s*hour?s?/i);
+  const mMatch = d.match(/(\d+)\s*min/i);
+  let total = 0;
+  if (hMatch) total += parseInt(hMatch[1], 10) * 60;
+  if (mMatch) total += parseInt(mMatch[1], 10);
+  return total;
+}
+
 // @desc    Get all artists (Public - for explore page)
 // @route   GET /api/artists
 // @access  Public
@@ -363,13 +392,34 @@ exports.checkAvailability = async (req, res, next) => {
       status: { $in: ['pending', 'confirmed'] }
     });
 
-    // Check for blocked time
-    const blockedTimes = await BlockedTime.find({
+    // Check for blocked time (any block overlapping this calendar day)
+    const endOfCheckDate = new Date(checkDate.getTime() + 24 * 60 * 60 * 1000 - 1);
+    const blockedTimesRaw = await BlockedTime.find({
       artistId,
       type: 'blocked_time',
       isActive: true,
-      startDate: { $lte: checkDate },
+      startDate: { $lte: endOfCheckDate },
       endDate: { $gte: checkDate }
+    });
+
+    // For same-day blocks with startTime/duration, only conflict if requested time falls inside the block
+    const checkTimeMinutes = time ? timeToMinutes(time) : null;
+    const checkDateStr = checkDate.toISOString().slice(0, 10);
+    const blockedTimes = blockedTimesRaw.filter((block) => {
+      const blockStartStr = block.startDate.toISOString().slice(0, 10);
+      const blockEndStr = block.endDate.toISOString().slice(0, 10);
+      const sameDay = blockStartStr === blockEndStr && blockStartStr === checkDateStr;
+      if (sameDay && block.startTime && block.duration && checkTimeMinutes != null) {
+        const blockStartMinutes = timeToMinutes(block.startTime);
+        const blockDurationMinutes = parseDurationToMinutes(block.duration);
+        if (blockStartMinutes == null) return true;
+        const blockEndMinutes = blockStartMinutes + blockDurationMinutes;
+        return checkTimeMinutes >= blockStartMinutes && checkTimeMinutes < blockEndMinutes;
+      }
+      if (sameDay && block.startTime && block.duration && checkTimeMinutes == null) {
+        return false;
+      }
+      return true;
     });
 
     // Check for vacations

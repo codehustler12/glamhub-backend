@@ -551,16 +551,15 @@ exports.createBlockedTime = async (req, res, next) => {
     const { startDate, endDate, startTime, duration, reason } = req.body;
     const artistId = req.user.id;
 
-    // For blocked time, if endDate is same as startDate, use startTime and duration
     let finalStartDate = new Date(startDate);
     let finalEndDate = new Date(endDate);
 
-    // If same day and has startTime/duration, calculate endDate
+    // Same-day block with startTime + duration: store date range as full day so date-overlap query finds it;
+    // actual time window is in startTime/duration and used in availability check.
     if (startTime && duration && startDate === endDate) {
-      // Parse duration (e.g., "3 hours" -> 3)
-      const hours = parseInt(duration.match(/\d+/)?.[0] || '0');
+      finalStartDate.setHours(0, 0, 0, 0);
       finalEndDate = new Date(finalStartDate);
-      finalEndDate.setHours(finalEndDate.getHours() + hours);
+      finalEndDate.setHours(23, 59, 59, 999);
     }
 
     const blockedTime = await BlockedTime.create({
