@@ -2,7 +2,7 @@ const OTP = require('../models/OTP');
 const User = require('../models/User');
 const { generateOTP, getOTPExpiry } = require('../utils/generateOTP');
 const { sendOTPEmail } = require('../services/emailService');
-const { sendOTPSMS, formatPhoneNumber } = require('../services/smsService');
+const { sendOTPSMS, formatPhoneNumber, validatePhoneForSMS } = require('../services/smsService');
 
 // @desc    Send OTP to Email
 // @route   POST /api/otp/send-email
@@ -93,6 +93,14 @@ exports.sendPhoneOTP = async (req, res, next) => {
 
     const formattedPhone = formatPhoneNumber(phone, countryCode);
 
+    const smsValidation = validatePhoneForSMS(formattedPhone);
+    if (!smsValidation.valid) {
+      return res.status(400).json({
+        success: false,
+        message: smsValidation.error
+      });
+    }
+
     // Check if there's a recent OTP (prevent spam)
     const recentOTP = await OTP.findOne({
       userId,
@@ -127,12 +135,16 @@ exports.sendPhoneOTP = async (req, res, next) => {
     const smsResult = await sendOTPSMS(formattedPhone, otp);
 
     if (!smsResult.success) {
-      const isGeoBlock = smsResult.code === 21408;
+      const userMessage = smsResult.code === 21408
+        ? 'SMS cannot be sent to this country yet. Please use email OTP or contact support.'
+        : smsResult.code === 21612
+          ? 'SMS cannot be sent to this region with current provider settings. Please use email OTP or try a different number.'
+          : smsResult.code === 21211
+            ? 'Invalid or unsupported phone number for SMS. For UAE, use a mobile number (50, 52, 55, 56). Landlines cannot receive SMS.'
+            : (smsResult.error || 'Failed to send OTP. Please try again.');
       return res.status(500).json({
         success: false,
-        message: isGeoBlock
-          ? 'SMS cannot be sent to this country yet. Please use email OTP or contact support.'
-          : (smsResult.error || 'Failed to send OTP. Please try again.')
+        message: userMessage
       });
     }
 
@@ -314,8 +326,20 @@ exports.sendRegistrationOTP = async (req, res, next) => {
       });
     }
 
+    const countryCode = req.body.countryCode || '+91';
+    const formattedPhone = type === 'phone' ? formatPhoneNumber(phone, countryCode) : null;
+    if (type === 'phone') {
+      const smsValidation = validatePhoneForSMS(formattedPhone);
+      if (!smsValidation.valid) {
+        return res.status(400).json({
+          success: false,
+          message: smsValidation.error
+        });
+      }
+    }
+
     // Check cooldown (using email/phone as identifier)
-    const identifier = type === 'email' ? email : formatPhoneNumber(phone);
+    const identifier = type === 'email' ? email : formattedPhone;
     const recentOTP = await OTP.findOne({
       [type]: identifier,
       createdAt: { $gt: new Date(Date.now() - 60 * 1000) }
@@ -353,7 +377,7 @@ exports.sendRegistrationOTP = async (req, res, next) => {
     if (type === 'email') {
       await sendOTPEmail(email, otp, 'User');
     } else {
-      await sendOTPSMS(formatPhoneNumber(phone), otp);
+      await sendOTPSMS(formattedPhone, otp);
     }
 
     res.status(200).json({
