@@ -1,19 +1,64 @@
 const twilio = require('twilio');
 
-// Initialize Twilio client
 const getTwilioClient = () => {
   const accountSid = process.env.TWILIO_ACCOUNT_SID;
   const authToken = process.env.TWILIO_AUTH_TOKEN;
-  
   if (!accountSid || !authToken) {
     console.warn('Twilio credentials not configured');
     return null;
   }
-  
   return twilio(accountSid, authToken);
 };
 
-// Send OTP via SMS
+const getVerifyServiceSid = () => process.env.TWILIO_VERIFY_SERVICE_SID || null;
+
+/**
+ * Send OTP via Twilio Verify (recommended for UAE and other regions).
+ * Twilio generates and sends the code; use checkOTPViaVerify to verify.
+ */
+const sendOTPViaVerify = async (phoneNumber) => {
+  const client = getTwilioClient();
+  const serviceSid = getVerifyServiceSid();
+  if (!client || !serviceSid) {
+    return { success: false, error: 'Verify not configured', code: null };
+  }
+  try {
+    const verification = await client.verify.v2
+      .services(serviceSid)
+      .verifications.create({ to: phoneNumber, channel: 'sms' });
+    console.log('Verify sent:', verification.sid);
+    return { success: true, sid: verification.sid };
+  } catch (error) {
+    console.error('Verify send error:', error.message, '| Code:', error.code, '| To:', phoneNumber);
+    return {
+      success: false,
+      error: error.message,
+      code: error.code
+    };
+  }
+};
+
+/**
+ * Check OTP via Twilio Verify. Call after user submits the code.
+ */
+const checkOTPViaVerify = async (phoneNumber, code) => {
+  const client = getTwilioClient();
+  const serviceSid = getVerifyServiceSid();
+  if (!client || !serviceSid) {
+    return { success: false, status: 'not_configured' };
+  }
+  try {
+    const check = await client.verify.v2
+      .services(serviceSid)
+      .verificationChecks.create({ to: phoneNumber, code: String(code).trim() });
+    return { success: check.status === 'approved', status: check.status };
+  } catch (error) {
+    console.error('Verify check error:', error.message, '| Code:', error.code);
+    return { success: false, status: error.code === 20404 ? 'expired_or_invalid' : 'error' };
+  }
+};
+
+// Send OTP via SMS (Messages API - used when Verify Service SID is not set)
 const sendOTPSMS = async (phoneNumber, otp) => {
   try {
     const client = getTwilioClient();
@@ -97,4 +142,12 @@ const validatePhoneForSMS = (e164Number) => {
   return { valid: true };
 };
 
-module.exports = { sendOTPSMS, validatePhoneNumber, formatPhoneNumber, validatePhoneForSMS };
+module.exports = {
+  sendOTPSMS,
+  sendOTPViaVerify,
+  checkOTPViaVerify,
+  getVerifyServiceSid,
+  validatePhoneNumber,
+  formatPhoneNumber,
+  validatePhoneForSMS
+};

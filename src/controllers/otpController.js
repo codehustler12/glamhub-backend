@@ -2,7 +2,7 @@ const OTP = require('../models/OTP');
 const User = require('../models/User');
 const { generateOTP, getOTPExpiry } = require('../utils/generateOTP');
 const { sendOTPEmail } = require('../services/emailService');
-const { sendOTPSMS, formatPhoneNumber, validatePhoneForSMS } = require('../services/smsService');
+const { sendOTPSMS, sendOTPViaVerify, checkOTPViaVerify, formatPhoneNumber, validatePhoneForSMS, getVerifyServiceSid } = require('../services/smsService');
 
 // @desc    Send OTP to Email
 // @route   POST /api/otp/send-email
@@ -115,14 +115,45 @@ exports.sendPhoneOTP = async (req, res, next) => {
       });
     }
 
-    // Generate OTP
-    const otp = generateOTP(6);
+    const useVerify = !!getVerifyServiceSid();
     const expiresAt = getOTPExpiry(10);
 
     // Delete old OTPs
     await OTP.deleteMany({ userId, type: 'phone' });
 
-    // Save new OTP
+    if (useVerify) {
+      // Twilio Verify: Twilio sends and stores the code
+      const verifyResult = await sendOTPViaVerify(formattedPhone);
+      if (!verifyResult.success) {
+        const userMessage = verifyResult.code === 21612
+          ? 'Your current SMS sender cannot send to this country. Please use email OTP.'
+          : verifyResult.code === 21211
+            ? 'Invalid or unsupported phone number for SMS. For UAE, use a mobile number (50, 52, 55, 56).'
+            : (verifyResult.error || 'Failed to send OTP. Please try again.');
+        return res.status(500).json({
+          success: false,
+          message: userMessage
+        });
+      }
+      await OTP.create({
+        userId,
+        otp: 'verify', // placeholder; actual check done via Twilio Verify API
+        type: 'phone',
+        phone: formattedPhone,
+        expiresAt
+      });
+      return res.status(200).json({
+        success: true,
+        message: 'OTP sent to your phone',
+        data: {
+          phone: formattedPhone.replace(/(\+\d{2})(\d{3})(\d+)(\d{2})/, '$1 $2 **** $4'),
+          expiresIn: '10 minutes'
+        }
+      });
+    }
+
+    // Messages API fallback
+    const otp = generateOTP(6);
     await OTP.create({
       userId,
       otp,
@@ -131,14 +162,13 @@ exports.sendPhoneOTP = async (req, res, next) => {
       expiresAt
     });
 
-    // Send OTP via SMS
     const smsResult = await sendOTPSMS(formattedPhone, otp);
 
     if (!smsResult.success) {
       const userMessage = smsResult.code === 21408
         ? 'SMS cannot be sent to this country yet. Please use email OTP or contact support.'
         : smsResult.code === 21612
-          ? 'SMS cannot be sent to this region with current provider settings. Please use email OTP or try a different number.'
+          ? 'Your current SMS sender number cannot send to this country. Please use email OTP, or in Twilio add a number/sender that supports this region (e.g. Alphanumeric Sender ID for UAE).'
           : smsResult.code === 21211
             ? 'Invalid or unsupported phone number for SMS. For UAE, use a mobile number (50, 52, 55, 56). Landlines cannot receive SMS.'
             : (smsResult.error || 'Failed to send OTP. Please try again.');
@@ -202,11 +232,23 @@ exports.verifyOTP = async (req, res, next) => {
       });
     }
 
-    // Verify OTP
-    if (otpRecord.otp !== otp) {
+    // Verify OTP (Twilio Verify vs our stored code)
+    if (otpRecord.otp === 'verify' && otpRecord.phone) {
+      const checkResult = await checkOTPViaVerify(otpRecord.phone, otp);
+      if (!checkResult.success) {
+        otpRecord.attempts += 1;
+        await otpRecord.save();
+        return res.status(400).json({
+          success: false,
+          message: checkResult.status === 'expired_or_invalid' ? 'OTP expired or invalid. Please request a new one.' : 'Invalid OTP',
+          data: {
+            attemptsRemaining: otpRecord.maxAttempts - otpRecord.attempts
+          }
+        });
+      }
+    } else if (otpRecord.otp !== otp) {
       otpRecord.attempts += 1;
       await otpRecord.save();
-      
       return res.status(400).json({
         success: false,
         message: 'Invalid OTP',
@@ -274,23 +316,34 @@ exports.resendOTP = async (req, res, next) => {
       });
     }
 
-    // Generate new OTP
-    const otp = generateOTP(6);
     const expiresAt = getOTPExpiry(10);
-
-    // Update OTP record
-    existingOTP.otp = otp;
     existingOTP.expiresAt = expiresAt;
     existingOTP.attempts = 0;
     existingOTP.createdAt = new Date();
-    await existingOTP.save();
 
-    // Send OTP
     if (type === 'email') {
+      const otp = generateOTP(6);
+      existingOTP.otp = otp;
+      await existingOTP.save();
       const user = await User.findById(userId);
       await sendOTPEmail(existingOTP.email, otp, user?.firstName || 'User');
     } else {
-      await sendOTPSMS(existingOTP.phone, otp);
+      if (existingOTP.otp === 'verify' && getVerifyServiceSid()) {
+        const verifyResult = await sendOTPViaVerify(existingOTP.phone);
+        if (!verifyResult.success) {
+          return res.status(500).json({
+            success: false,
+            message: verifyResult.error || 'Failed to resend OTP.'
+          });
+        }
+        existingOTP.otp = 'verify';
+        await existingOTP.save();
+      } else {
+        const otp = generateOTP(6);
+        existingOTP.otp = otp;
+        await existingOTP.save();
+        await sendOTPSMS(existingOTP.phone, otp);
+      }
     }
 
     res.status(200).json({
@@ -352,32 +405,50 @@ exports.sendRegistrationOTP = async (req, res, next) => {
       });
     }
 
-    // Generate OTP
-    const otp = generateOTP(6);
     const expiresAt = getOTPExpiry(10);
-
-    // Delete old OTPs
-    await OTP.deleteMany({ [type]: identifier, type });
-
-    // Create temporary user ID for OTP storage
     const mongoose = require('mongoose');
     const tempUserId = new mongoose.Types.ObjectId();
 
-    
-    // Save OTP
-    await OTP.create({
-      userId: tempUserId,
-      otp,
-      type,
-      [type]: identifier,
-      expiresAt
-    });
+    await OTP.deleteMany({ [type]: identifier, type });
 
-    // Send OTP
     if (type === 'email') {
+      const otp = generateOTP(6);
+      await OTP.create({
+        userId: tempUserId,
+        otp,
+        type,
+        email: identifier,
+        expiresAt
+      });
       await sendOTPEmail(email, otp, 'User');
     } else {
-      await sendOTPSMS(formattedPhone, otp);
+      const useVerify = !!getVerifyServiceSid();
+      if (useVerify) {
+        const verifyResult = await sendOTPViaVerify(formattedPhone);
+        if (!verifyResult.success) {
+          return res.status(500).json({
+            success: false,
+            message: verifyResult.error || 'Failed to send OTP.'
+          });
+        }
+        await OTP.create({
+          userId: tempUserId,
+          otp: 'verify',
+          type: 'phone',
+          phone: formattedPhone,
+          expiresAt
+        });
+      } else {
+        const otp = generateOTP(6);
+        await OTP.create({
+          userId: tempUserId,
+          otp,
+          type: 'phone',
+          phone: formattedPhone,
+          expiresAt
+        });
+        await sendOTPSMS(formattedPhone, otp);
+      }
     }
 
     res.status(200).json({
@@ -407,9 +478,9 @@ exports.verifyRegistrationOTP = async (req, res, next) => {
       });
     }
 
-    const identifier = type === 'email' ? email : formatPhoneNumber(phone);
+    const countryCode = req.body.countryCode || '+91';
+    const identifier = type === 'email' ? email : formatPhoneNumber(phone, countryCode);
 
-    // Find OTP record
     const otpRecord = await OTP.findOne({
       [type]: identifier,
       type,
@@ -432,8 +503,19 @@ exports.verifyRegistrationOTP = async (req, res, next) => {
       });
     }
 
-    // Verify
-    if (otpRecord.otp !== otp) {
+    // Verify (Twilio Verify vs stored code)
+    if (type === 'phone' && otpRecord.otp === 'verify' && otpRecord.phone) {
+      const checkResult = await checkOTPViaVerify(otpRecord.phone, otp);
+      if (!checkResult.success) {
+        otpRecord.attempts += 1;
+        await otpRecord.save();
+        return res.status(400).json({
+          success: false,
+          message: checkResult.status === 'expired_or_invalid' ? 'OTP expired or invalid.' : 'Invalid OTP',
+          data: { attemptsRemaining: otpRecord.maxAttempts - otpRecord.attempts }
+        });
+      }
+    } else if (otpRecord.otp !== otp) {
       otpRecord.attempts += 1;
       await otpRecord.save();
       return res.status(400).json({
@@ -443,7 +525,6 @@ exports.verifyRegistrationOTP = async (req, res, next) => {
       });
     }
 
-    // Mark as verified
     otpRecord.isVerified = true;
     await otpRecord.save();
 
