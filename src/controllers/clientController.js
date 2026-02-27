@@ -345,6 +345,212 @@ exports.createBooking = async (req, res, next) => {
   }
 };
 
+// @desc    Prepare payment for "pay by card" – get Stripe clientSecret without creating a booking
+// @route   POST /api/client/bookings/prepare-payment
+// @access  Private (Client only)
+// Use this when user selects "Pay by card". After user pays in Stripe, call confirm-payment to create the booking.
+exports.prepareBookingPayment = async (req, res, next) => {
+  try {
+    if (req.user.role !== 'user') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only clients can create bookings'
+      });
+    }
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation Error',
+        errors: errors.array()
+      });
+    }
+
+    const { artistId, serviceIds, appointmentDate, appointmentTime, venue, venueDetails, notes } = req.body;
+    if (req.body.paymentMethod !== 'pay_now') {
+      return res.status(400).json({
+        success: false,
+        message: 'prepare-payment is only for paymentMethod pay_now. Use POST /bookings for pay_at_venue.'
+      });
+    }
+
+    const clientId = req.user.id;
+
+    const artist = await User.findById(artistId);
+    if (!artist || artist.role !== 'artist') {
+      return res.status(404).json({
+        success: false,
+        message: 'Artist not found'
+      });
+    }
+
+    const services = await Service.find({
+      _id: { $in: serviceIds },
+      artistId,
+      isActive: true
+    });
+
+    if (services.length !== serviceIds.length) {
+      return res.status(400).json({
+        success: false,
+        message: 'One or more services not found or inactive'
+      });
+    }
+
+    let totalAmount = 0;
+    const serviceFee = 150;
+    services.forEach(s => { totalAmount += s.price; });
+    totalAmount += serviceFee;
+
+    const primaryService = services[0];
+    const { createPaymentIntent } = require('../services/stripeService');
+    const paymentResult = await createPaymentIntent(
+      totalAmount,
+      primaryService.currency,
+      'pending', // no booking id yet
+      clientId,
+      artistId
+    );
+
+    if (!paymentResult.success) {
+      return res.status(500).json({
+        success: false,
+        message: paymentResult.error || 'Could not create payment session',
+        stripeConfigured: !!process.env.STRIPE_SECRET_KEY
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Complete payment in the popup, then call confirm-payment with the same booking details.',
+      data: {
+        clientSecret: paymentResult.clientSecret,
+        paymentIntentId: paymentResult.paymentIntentId,
+        totalAmount,
+        currency: primaryService.currency,
+        stripeConfigured: true
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Create booking after successful Stripe payment (for "pay by card" flow)
+// @route   POST /api/client/bookings/confirm-payment
+// @access  Private (Client only)
+// Call this after the user has successfully paid in Stripe. Verifies payment then creates the booking.
+exports.confirmBookingAfterPayment = async (req, res, next) => {
+  try {
+    if (req.user.role !== 'user') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only clients can create bookings'
+      });
+    }
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation Error',
+        errors: errors.array()
+      });
+    }
+
+    const {
+      paymentIntentId,
+      artistId,
+      serviceIds,
+      appointmentDate,
+      appointmentTime,
+      venue,
+      venueDetails,
+      notes
+    } = req.body;
+
+    const clientId = req.user.id;
+
+    const { confirmPayment } = require('../services/stripeService');
+    const paymentResult = await confirmPayment(paymentIntentId);
+
+    if (!paymentResult.success || paymentResult.status !== 'succeeded') {
+      return res.status(400).json({
+        success: false,
+        message: 'Payment not completed. Please complete payment first, or use a valid payment intent.'
+      });
+    }
+
+    const artist = await User.findById(artistId);
+    if (!artist || artist.role !== 'artist') {
+      return res.status(404).json({
+        success: false,
+        message: 'Artist not found'
+      });
+    }
+
+    const services = await Service.find({
+      _id: { $in: serviceIds },
+      artistId,
+      isActive: true
+    });
+
+    if (services.length !== serviceIds.length) {
+      return res.status(400).json({
+        success: false,
+        message: 'One or more services not found or inactive'
+      });
+    }
+
+    let totalAmount = 0;
+    const serviceFee = 150;
+    services.forEach(s => { totalAmount += s.price; });
+    totalAmount += serviceFee;
+
+    const servicesArray = services.map(s => ({
+      serviceId: s._id,
+      serviceName: s.serviceName,
+      price: s.price,
+      currency: s.currency
+    }));
+    const primaryService = services[0];
+
+    const appointment = await Appointment.create({
+      artistId,
+      clientId,
+      serviceId: primaryService._id,
+      appointmentDate: new Date(appointmentDate),
+      appointmentTime,
+      venue: venue || 'artist_studio',
+      venueDetails: venueDetails || {},
+      paymentMethod: 'pay_now',
+      paymentStatus: 'paid',
+      services: servicesArray,
+      totalAmount,
+      serviceFee,
+      currency: primaryService.currency,
+      serviceType: primaryService.serviceType,
+      notes: notes || '',
+      status: 'confirmed'
+    });
+
+    const populated = await Appointment.findById(appointment._id)
+      .populate('artistId', 'firstName lastName username avatar')
+      .populate('serviceId', 'serviceName serviceType price currency');
+
+    res.status(201).json({
+      success: true,
+      message: 'Booking confirmed and payment received.',
+      data: {
+        booking: populated
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // ============================================
 // REVIEWS CONTROLLERS
 // ============================================

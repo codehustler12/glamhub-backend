@@ -26,20 +26,17 @@ const createPaymentIntent = async (amount, currency, appointmentId, clientId, ar
       };
     }
 
-    // Convert amount to smallest currency unit
-    // For AED, USD, EUR: multiply by 100 (cents/fils)
-    // For INR, PKR: multiply by 100 (paise)
     const amountInSmallestUnit = Math.round(amount * 100);
 
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amountInSmallestUnit,
       currency: currency.toLowerCase(),
       metadata: {
-        appointmentId: appointmentId.toString(),
+        appointmentId: (appointmentId || 'pending').toString(),
         clientId: clientId.toString(),
         artistId: artistId.toString()
       },
-      description: `Booking payment for appointment ${appointmentId}`,
+      description: appointmentId && appointmentId !== 'pending' ? `Booking payment for appointment ${appointmentId}` : 'Booking payment',
       automatic_payment_methods: {
         enabled: true
       }

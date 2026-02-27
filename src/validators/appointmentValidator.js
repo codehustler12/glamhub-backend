@@ -104,6 +104,44 @@ exports.createBookingValidator = [
     .withMessage('Notes cannot exceed 500 characters')
 ];
 
+exports.confirmBookingPaymentValidator = [
+  body('paymentIntentId')
+    .notEmpty()
+    .withMessage('Payment Intent ID is required')
+    .trim(),
+  body('artistId')
+    .notEmpty()
+    .withMessage('Artist ID is required')
+    .isMongoId()
+    .withMessage('Invalid Artist ID format'),
+  body('serviceIds')
+    .isArray({ min: 1 })
+    .withMessage('At least one service ID is required')
+    .custom((serviceIds) => {
+      if (!Array.isArray(serviceIds) || serviceIds.length === 0) return false;
+      const mongoose = require('mongoose');
+      return serviceIds.every(id => mongoose.Types.ObjectId.isValid(id));
+    })
+    .withMessage('All service IDs must be valid MongoDB ObjectIds'),
+  body('appointmentDate')
+    .notEmpty()
+    .withMessage('Appointment date is required')
+    .isISO8601()
+    .withMessage('Invalid date format'),
+  body('appointmentTime')
+    .notEmpty()
+    .withMessage('Appointment time is required')
+    .trim(),
+  body('venue')
+    .optional()
+    .isIn(['artist_studio', 'client_venue']),
+  body('venueDetails.venueName').optional().trim(),
+  body('venueDetails.street').optional().trim(),
+  body('venueDetails.city').optional().trim(),
+  body('venueDetails.state').optional().trim(),
+  body('notes').optional().trim()
+];
+
 exports.processPaymentValidator = [
   body('appointmentId')
     .notEmpty()

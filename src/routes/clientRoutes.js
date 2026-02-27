@@ -4,6 +4,8 @@ const {
   getMyBookings,
   getBookingById,
   createBooking,
+  prepareBookingPayment,
+  confirmBookingAfterPayment,
   cancelBooking,
   getMyReviews,
   createReview,
@@ -27,11 +29,13 @@ const {
 } = require('../controllers/messageController');
 const { protect } = require('../middleware/auth');
 const { createReviewValidator, updateReviewValidator } = require('../validators/reviewValidator');
-const { createBookingValidator, processPaymentValidator, requestRefundValidator, cancelBookingValidator } = require('../validators/appointmentValidator');
+const { createBookingValidator, confirmBookingPaymentValidator, processPaymentValidator, requestRefundValidator, cancelBookingValidator } = require('../validators/appointmentValidator');
 const { sendMessageValidator } = require('../validators/messageValidator');
 
-// Bookings routes
+// Bookings routes (specific paths before :id)
 router.get('/bookings', protect, getMyBookings);
+router.post('/bookings/prepare-payment', protect, createBookingValidator, prepareBookingPayment);
+router.post('/bookings/confirm-payment', protect, confirmBookingPaymentValidator, confirmBookingAfterPayment);
 router.get('/bookings/:id', protect, getBookingById);
 router.post('/bookings', protect, createBookingValidator, createBooking);
 router.put('/bookings/:id/cancel', protect, cancelBookingValidator, cancelBooking);
