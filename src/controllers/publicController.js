@@ -34,6 +34,24 @@ function parseDurationToMinutes(durationStr) {
   return total;
 }
 
+/**
+ * Requested slot as minutes: [start, end) (end exclusive). Supports "14:00" or "14:00-15:00".
+ */
+function parseTimeQueryToSlotMinutes(timeStr) {
+  if (!timeStr || typeof timeStr !== 'string') return null;
+  const t = timeStr.trim();
+  const range = t.match(/^(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})$/);
+  if (range) {
+    const start = parseInt(range[1], 10) * 60 + parseInt(range[2], 10);
+    const end = parseInt(range[3], 10) * 60 + parseInt(range[4], 10);
+    if (end <= start) return null;
+    return { start, end };
+  }
+  const point = timeToMinutes(t);
+  if (point == null) return null;
+  return { start: point, end: point + 1 };
+}
+
 // @desc    Get all artists (Public - for explore page)
 // @route   GET /api/artists
 // @access  Public
@@ -402,21 +420,24 @@ exports.checkAvailability = async (req, res, next) => {
       endDate: { $gte: checkDate }
     });
 
-    // For same-day blocks with startTime/duration, only conflict if requested time falls inside the block
-    const checkTimeMinutes = time ? timeToMinutes(time) : null;
-    const checkDateStr = checkDate.toISOString().slice(0, 10);
+    // For same-day blocks with startTime/duration, only conflict if requested slot overlaps the block
+    const checkSlot = time ? parseTimeQueryToSlotMinutes(time) : null;
+    // Use YYYY-MM-DD from query for calendar day (avoids timezone shift vs toISOString() on local midnight)
+    const checkDateStr = /^\d{4}-\d{2}-\d{2}$/.test(String(date).trim())
+      ? String(date).trim()
+      : checkDate.toISOString().slice(0, 10);
     const blockedTimes = blockedTimesRaw.filter((block) => {
       const blockStartStr = block.startDate.toISOString().slice(0, 10);
       const blockEndStr = block.endDate.toISOString().slice(0, 10);
       const sameDay = blockStartStr === blockEndStr && blockStartStr === checkDateStr;
-      if (sameDay && block.startTime && block.duration && checkTimeMinutes != null) {
+      if (sameDay && block.startTime && block.duration && checkSlot != null) {
         const blockStartMinutes = timeToMinutes(block.startTime);
         const blockDurationMinutes = parseDurationToMinutes(block.duration);
         if (blockStartMinutes == null) return true;
         const blockEndMinutes = blockStartMinutes + blockDurationMinutes;
-        return checkTimeMinutes >= blockStartMinutes && checkTimeMinutes < blockEndMinutes;
+        return checkSlot.start < blockEndMinutes && checkSlot.end > blockStartMinutes;
       }
-      if (sameDay && block.startTime && block.duration && checkTimeMinutes == null) {
+      if (sameDay && block.startTime && block.duration && checkSlot == null) {
         return false;
       }
       return true;
