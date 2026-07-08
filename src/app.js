@@ -17,6 +17,10 @@ const path = require('path');
 
 const app = express();
 
+// Stripe webhooks need raw body — must be before express.json()
+const webhookRoutes = require('./routes/webhookRoutes');
+app.use('/api/webhooks', express.raw({ type: 'application/json' }), webhookRoutes);
+
 // CORS Configuration
 const allowedOrigins = [
   'http://localhost:3000',

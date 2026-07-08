@@ -130,6 +130,23 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: []
   }],
+  stripeAccountId: {
+    type: String,
+    default: null,
+    index: true
+  },
+  stripeOnboardingComplete: {
+    type: Boolean,
+    default: false
+  },
+  stripeChargesEnabled: {
+    type: Boolean,
+    default: false
+  },
+  stripePayoutsEnabled: {
+    type: Boolean,
+    default: false
+  },
   resetPasswordToken: String,
   resetPasswordExpire: Date
 }, {

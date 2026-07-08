@@ -68,6 +68,30 @@ const appointmentSchema = new mongoose.Schema({
     enum: ['pending', 'paid', 'refunded', 'failed'],
     default: 'pending'
   },
+  paymentIntentId: {
+    type: String,
+    default: null,
+    index: true
+  },
+  artistPayoutStatus: {
+    type: String,
+    enum: ['pending', 'released', 'not_applicable', 'refunded'],
+    default: 'not_applicable'
+  },
+  artistPayoutAmount: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  platformCommissionAmount: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  stripeTransferId: {
+    type: String,
+    default: null
+  },
   serviceFee: {
     type: Number,
     default: 0,

@@ -314,20 +314,112 @@ exports.updateAppointmentStatus = async (req, res, next) => {
       });
     }
 
-    // Update status
-    appointment.status = status;
-    if (status === 'cancelled' && cancellationReason) {
-      appointment.cancellationReason = cancellationReason;
+    const previousStatus = appointment.status;
+
+    if (status === 'completed' && previousStatus === 'completed') {
+      return res.status(400).json({
+        success: false,
+        message: 'Appointment is already completed'
+      });
+    }
+
+    if (status === 'cancelled') {
+      if (appointment.status === 'cancelled') {
+        return res.status(400).json({
+          success: false,
+          message: 'Appointment is already cancelled'
+        });
+      }
+      if (appointment.status === 'completed') {
+        return res.status(400).json({
+          success: false,
+          message: 'Cannot cancel a completed appointment'
+        });
+      }
+
+      appointment.status = 'cancelled';
       appointment.cancelledBy = 'artist';
+      if (cancellationReason) {
+        appointment.cancellationReason = cancellationReason;
+      }
+
+      const { processAppointmentRefund } = require('../services/appointmentPaymentService');
+      const refundResult = await processAppointmentRefund(appointment, 'artist');
+      if (refundResult.error && refundResult.refundAmount > 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Could not process refund for cancelled booking',
+          error: refundResult.error
+        });
+      }
+      await appointment.save();
+
+      const populated = await Appointment.findById(appointment._id)
+        .populate('clientId', 'firstName lastName username avatar')
+        .populate('serviceId', 'serviceName serviceType price currency');
+
+      return res.status(200).json({
+        success: true,
+        message: 'Appointment cancelled successfully',
+        data: {
+          appointment: populated,
+          refundAmount: refundResult.refundAmount,
+          refundPercent: refundResult.refundPercent,
+          refundReason: refundResult.reason,
+          refunded: refundResult.refunded
+        }
+      });
+    }
+
+    appointment.status = status;
+
+    let payout = null;
+
+    if (status === 'completed') {
+      const User = require('../models/User');
+      const artist = await User.findById(appointment.artistId);
+      const { releaseArtistPayout } = require('../services/stripeConnectService');
+      const payoutResult = await releaseArtistPayout(appointment, artist);
+
+      if (
+        appointment.paymentMethod === 'pay_now' &&
+        appointment.paymentStatus === 'paid' &&
+        !payoutResult.success &&
+        !payoutResult.alreadyReleased
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: payoutResult.error || 'Could not release artist payout',
+          data: { appointment }
+        });
+      }
+
+      if (payoutResult.success) {
+        payout = {
+          released: !payoutResult.alreadyReleased,
+          alreadyReleased: Boolean(payoutResult.alreadyReleased),
+          artistPayoutAmount: payoutResult.artistPayoutAmount,
+          platformCommissionAmount: payoutResult.platformCommissionAmount
+        };
+      }
     }
 
     await appointment.save();
 
+    const populated = await Appointment.findById(appointment._id)
+      .populate('clientId', 'firstName lastName username avatar')
+      .populate('serviceId', 'serviceName serviceType price currency');
+
     res.status(200).json({
       success: true,
-      message: 'Appointment status updated successfully',
+      message: status === 'completed'
+        ? payout?.released
+          ? 'Appointment completed and artist payout released'
+          : 'Appointment completed successfully'
+        : 'Appointment status updated successfully',
       data: {
-        appointment
+        appointment: populated,
+        payout
       }
     });
   } catch (error) {

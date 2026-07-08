@@ -50,6 +50,13 @@ const {
   getArtistTransactions
 } = require('../controllers/paymentController');
 
+// Stripe Connect (artist)
+const {
+  getConnectStatus,
+  startConnectOnboarding,
+  getDashboardLink
+} = require('../controllers/stripeConnectController');
+
 // Dashboard Stats
 router.get('/dashboard/stats', protect, getDashboardStats);
 
@@ -75,6 +82,11 @@ router.delete('/vacations/:id', protect, deleteVacation);
 // Payments (stats and transactions - must be before any /payments/:id)
 router.get('/payments/stats', protect, getArtistPaymentStats);
 router.get('/payments/transactions', protect, getArtistTransactions);
+
+// Stripe Connect
+router.get('/stripe/status', protect, getConnectStatus);
+router.post('/stripe/connect', protect, startConnectOnboarding);
+router.post('/stripe/dashboard-link', protect, getDashboardLink);
 
 // Reviews
 router.get('/reviews', getReviews); // Can be public with artistId query

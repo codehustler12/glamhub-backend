@@ -170,6 +170,16 @@ exports.cancelBooking = async (req, res, next) => {
     if (cancellationReason && cancellationReason.trim()) {
       appointment.cancellationReason = cancellationReason.trim();
     }
+
+    const { processAppointmentRefund } = require('../services/appointmentPaymentService');
+    const refundResult = await processAppointmentRefund(appointment, 'client');
+    if (refundResult.error && refundResult.refundAmount > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Could not process refund for cancelled booking',
+        error: refundResult.error
+      });
+    }
     await appointment.save();
 
     const populated = await Appointment.findById(appointment._id)
@@ -180,7 +190,11 @@ exports.cancelBooking = async (req, res, next) => {
       success: true,
       message: 'Booking cancelled successfully',
       data: {
-        booking: populated
+        booking: populated,
+        refundAmount: refundResult.refundAmount,
+        refundPercent: refundResult.refundPercent,
+        refundReason: refundResult.reason,
+        refunded: refundResult.refunded
       }
     });
   } catch (error) {
@@ -291,6 +305,15 @@ exports.createBooking = async (req, res, next) => {
     let stripeConfigured = false;
     let stripeError = null;
     if (paymentMethod === 'pay_now') {
+      const { isArtistReadyForPayNow } = require('../services/stripeConnectService');
+      if (!isArtistReadyForPayNow(artist)) {
+        return res.status(400).json({
+          success: false,
+          message: 'This artist is not accepting online payments yet. Please choose pay at venue or another artist.',
+          code: 'ARTIST_NOT_ONBOARDED'
+        });
+      }
+
       try {
         const { createPaymentIntent } = require('../services/stripeService');
         const paymentResult = await createPaymentIntent(
@@ -382,6 +405,15 @@ exports.prepareBookingPayment = async (req, res, next) => {
       return res.status(404).json({
         success: false,
         message: 'Artist not found'
+      });
+    }
+
+    const { isArtistReadyForPayNow } = require('../services/stripeConnectService');
+    if (!isArtistReadyForPayNow(artist)) {
+      return res.status(400).json({
+        success: false,
+        message: 'This artist is not accepting online payments yet. Please choose pay at venue or another artist.',
+        code: 'ARTIST_NOT_ONBOARDED'
       });
     }
 
@@ -490,6 +522,15 @@ exports.confirmBookingAfterPayment = async (req, res, next) => {
       });
     }
 
+    const { isArtistReadyForPayNow } = require('../services/stripeConnectService');
+    if (!isArtistReadyForPayNow(artist)) {
+      return res.status(400).json({
+        success: false,
+        message: 'This artist is not accepting online payments yet. Please choose pay at venue or another artist.',
+        code: 'ARTIST_NOT_ONBOARDED'
+      });
+    }
+
     const services = await Service.find({
       _id: { $in: serviceIds },
       artistId,
@@ -526,6 +567,8 @@ exports.confirmBookingAfterPayment = async (req, res, next) => {
       venueDetails: venueDetails || {},
       paymentMethod: 'pay_now',
       paymentStatus: 'paid',
+      paymentIntentId,
+      artistPayoutStatus: 'pending',
       services: servicesArray,
       totalAmount,
       serviceFee,
@@ -534,6 +577,9 @@ exports.confirmBookingAfterPayment = async (req, res, next) => {
       notes: notes || '',
       status: 'confirmed'
     });
+
+    const { recordBookingPayment } = require('../services/appointmentPaymentService');
+    await recordBookingPayment(appointment, paymentIntentId);
 
     const populated = await Appointment.findById(appointment._id)
       .populate('artistId', 'firstName lastName username avatar')
