@@ -150,9 +150,81 @@ const isArtistReadyForPayNow = (artist) => {
   );
 };
 
+const createConnectAccountV2 = async (artist, displayName, country) => {
+  return stripe.v2.core.accounts.create({
+    contact_email: artist.email || undefined,
+    display_name: displayName,
+    dashboard: 'express',
+    identity: {
+      country
+    },
+    defaults: {
+      responsibilities: {
+        fees_collector: 'application',
+        losses_collector: 'application'
+      }
+    },
+    configuration: {
+      recipient: {
+        capabilities: {
+          stripe_balance: {
+            stripe_transfers: {
+              requested: true
+            }
+          }
+        }
+      }
+    },
+    metadata: {
+      glamhubArtistId: artist._id.toString(),
+      glamhubUsername: artist.username
+    },
+    include: ACCOUNT_INCLUDES
+  });
+};
+
 /**
- * Create connected account via Accounts v2 (recipient) for escrow transfers.
- * GlamHub holds payment then transfers to artist after appointment completion.
+ * Fallback for platforms that have Connect enabled but not Accounts v2.
+ * Uses controller properties (not legacy type: express).
+ */
+const createConnectAccountV1 = async (artist, displayName, country) => {
+  return stripe.accounts.create({
+    country: country.toUpperCase(),
+    email: artist.email || undefined,
+    business_type: 'individual',
+    capabilities: {
+      transfers: { requested: true }
+    },
+    business_profile: {
+      name: displayName,
+      product_description: 'Beauty and makeup services via GlamHub'
+    },
+    metadata: {
+      glamhubArtistId: artist._id.toString(),
+      glamhubUsername: artist.username
+    },
+    controller: {
+      losses: { payments: 'application' },
+      fees: { payer: 'application' },
+      stripe_dashboard: { type: 'express' },
+      requirement_collection: 'stripe'
+    }
+  });
+};
+
+const isAccountsV2DisabledError = (error) => {
+  const message = getStripeErrorMessage(error);
+  const code = error?.code || error?.raw?.code;
+  return (
+    code === 'accounts_v2_access_blocked' ||
+    /Accounts v2 is not enabled/i.test(message) ||
+    /signed up for Connect/i.test(message)
+  );
+};
+
+/**
+ * Create connected account for escrow transfers (platform holds funds, then pays artist).
+ * Tries Accounts v2 first; falls back to Accounts v1 controller API if v2 is not enabled.
  */
 const createConnectAccount = async (artist) => {
   if (!isStripeConfigured()) {
@@ -163,40 +235,20 @@ const createConnectAccount = async (artist) => {
     return { success: true, accountId: artist.stripeAccountId };
   }
 
-  try {
-    const displayName = `${artist.firstName || ''} ${artist.lastName || ''}`.trim() || artist.username;
-    const country = getDefaultConnectCountry().toLowerCase();
+  const displayName = `${artist.firstName || ''} ${artist.lastName || ''}`.trim() || artist.username;
+  const country = getDefaultConnectCountry().toLowerCase();
 
-    const account = await stripe.v2.core.accounts.create({
-      contact_email: artist.email || undefined,
-      display_name: displayName,
-      dashboard: 'express',
-      identity: {
-        country
-      },
-      defaults: {
-        responsibilities: {
-          fees_collector: 'application',
-          losses_collector: 'application'
-        }
-      },
-      configuration: {
-        recipient: {
-          capabilities: {
-            stripe_balance: {
-              stripe_transfers: {
-                requested: true
-              }
-            }
-          }
-        }
-      },
-      metadata: {
-        glamhubArtistId: artist._id.toString(),
-        glamhubUsername: artist.username
-      },
-      include: ACCOUNT_INCLUDES
-    });
+  try {
+    let account;
+    try {
+      account = await createConnectAccountV2(artist, displayName, country);
+    } catch (v2Error) {
+      if (!isAccountsV2DisabledError(v2Error)) {
+        throw v2Error;
+      }
+      console.warn('Accounts v2 unavailable, falling back to Accounts v1 controller:', getStripeErrorMessage(v2Error));
+      account = await createConnectAccountV1(artist, displayName, country);
+    }
 
     artist.stripeAccountId = account.id;
     await artist.save();
@@ -204,9 +256,17 @@ const createConnectAccount = async (artist) => {
     return { success: true, accountId: account.id };
   } catch (error) {
     console.error('Stripe Connect account create error:', error);
+    const message = getStripeErrorMessage(error);
+    if (/signed up for Connect|platform-setup|Accounts v2 is not enabled/i.test(message)) {
+      return {
+        success: false,
+        error:
+          'Stripe Connect is not fully enabled on the GlamHub Stripe account yet. Open Stripe Dashboard → Settings → Connect → Platform setup (https://dashboard.stripe.com/settings/connect/platform-setup), complete setup, then try again.'
+      };
+    }
     return {
       success: false,
-      error: getStripeErrorMessage(error)
+      error: message
     };
   }
 };
