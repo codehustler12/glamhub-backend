@@ -53,9 +53,12 @@ exports.startConnectOnboarding = async (req, res, next) => {
     const result = await createAccountOnboardingLink(artist, returnUrl, refreshUrl);
 
     if (!result.success) {
-      return res.status(500).json({
+      const message = result.error || 'Could not create Stripe onboarding link';
+      const needsConnectSignup = /signed up for Connect/i.test(message);
+      return res.status(needsConnectSignup ? 400 : 500).json({
         success: false,
-        message: result.error || 'Could not create Stripe onboarding link'
+        message,
+        code: needsConnectSignup ? 'CONNECT_NOT_ENABLED' : 'CONNECT_ONBOARDING_FAILED'
       });
     }
 

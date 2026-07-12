@@ -12,40 +12,95 @@ try {
   console.warn('Stripe module not installed or not configured.');
 }
 
+const ACCOUNT_INCLUDES = [
+  'configuration.recipient',
+  'identity',
+  'requirements',
+  'defaults'
+];
+
 const isStripeConfigured = () => !!(stripe && process.env.STRIPE_SECRET_KEY);
 
 const getStripeClient = () => stripe;
 
+const getStripeErrorMessage = (error) => {
+  return (
+    error?.raw?.message ||
+    error?.message ||
+    'Stripe Connect request failed'
+  );
+};
+
+/**
+ * Map Accounts v2 (or legacy v1) account payload to frontend status shape.
+ */
 const mapAccountToStatus = (account) => {
   const requirementsDue = [
+    ...(account.requirements?.entries_due || []),
     ...(account.requirements?.currently_due || []),
     ...(account.requirements?.past_due || [])
-  ];
+  ].map((item) => (typeof item === 'string' ? item : item?.name || JSON.stringify(item)));
 
-  const onboardingComplete = Boolean(
-    account.details_submitted &&
-    requirementsDue.length === 0 &&
-    !account.requirements?.disabled_reason
+  const transfersStatus =
+    account.configuration?.recipient?.capabilities?.stripe_balance?.stripe_transfers?.status ||
+    null;
+
+  const payoutsEnabled = transfersStatus
+    ? transfersStatus === 'active'
+    : Boolean(account.payouts_enabled);
+
+  const chargesEnabled = Boolean(
+    account.configuration?.merchant?.capabilities?.card_payments?.status === 'active' ||
+    account.charges_enabled
   );
 
+  const detailsSubmitted = Boolean(
+    account.requirements?.summary?.minimum_deadline == null
+      ? account.details_submitted ?? requirementsDue.length === 0
+      : account.details_submitted
+  );
+
+  const onboardingComplete = Boolean(
+    (account.details_submitted || transfersStatus === 'active' || transfersStatus === 'pending') &&
+    requirementsDue.length === 0 &&
+    !account.requirements?.disabled_reason &&
+    (payoutsEnabled || transfersStatus === 'pending' || transfersStatus === 'active')
+  );
+
+  // For our escrow flow, "ready" means transfers capability is active
+  const readyForPayouts = payoutsEnabled;
+
   let message = 'Complete setup to receive online payments';
-  if (onboardingComplete && account.payouts_enabled) {
+  if (readyForPayouts) {
     message = 'Payouts active';
-  } else if (account.details_submitted && requirementsDue.length > 0) {
+  } else if (transfersStatus === 'pending') {
+    message = 'Stripe is reviewing your account';
+  } else if (requirementsDue.length > 0) {
     message = 'Additional information required to activate payouts';
-  } else if (account.details_submitted) {
+  } else if (detailsSubmitted || account.details_submitted) {
     message = 'Stripe is reviewing your account';
   }
 
   return {
     stripeConfigured: isStripeConfigured(),
     hasConnectAccount: true,
-    onboardingComplete,
-    chargesEnabled: Boolean(account.charges_enabled),
-    payoutsEnabled: Boolean(account.payouts_enabled),
+    onboardingComplete: readyForPayouts || onboardingComplete,
+    chargesEnabled,
+    payoutsEnabled: readyForPayouts,
     requirementsDue,
     message
   };
+};
+
+const retrieveConnectAccount = async (accountId) => {
+  try {
+    return await stripe.v2.core.accounts.retrieve(accountId, {
+      include: ACCOUNT_INCLUDES
+    });
+  } catch (v2Error) {
+    // Fallback for any older v1 express accounts already stored
+    return stripe.accounts.retrieve(accountId);
+  }
 };
 
 const syncArtistFromStripeAccount = async (artist, account) => {
@@ -83,7 +138,7 @@ const getArtistConnectStatus = async (artist) => {
     };
   }
 
-  const account = await stripe.accounts.retrieve(artist.stripeAccountId);
+  const account = await retrieveConnectAccount(artist.stripeAccountId);
   return syncArtistFromStripeAccount(artist, account);
 };
 
@@ -95,6 +150,10 @@ const isArtistReadyForPayNow = (artist) => {
   );
 };
 
+/**
+ * Create connected account via Accounts v2 (recipient) for escrow transfers.
+ * GlamHub holds payment then transfers to artist after appointment completion.
+ */
 const createConnectAccount = async (artist) => {
   if (!isStripeConfigured()) {
     return { success: false, error: 'Stripe is not configured' };
@@ -104,24 +163,52 @@ const createConnectAccount = async (artist) => {
     return { success: true, accountId: artist.stripeAccountId };
   }
 
-  const account = await stripe.accounts.create({
-    type: 'express',
-    country: getDefaultConnectCountry(),
-    email: artist.email || undefined,
-    capabilities: {
-      transfers: { requested: true }
-    },
-    business_type: 'individual',
-    metadata: {
-      glamhubArtistId: artist._id.toString(),
-      glamhubUsername: artist.username
-    }
-  });
+  try {
+    const displayName = `${artist.firstName || ''} ${artist.lastName || ''}`.trim() || artist.username;
+    const country = getDefaultConnectCountry().toLowerCase();
 
-  artist.stripeAccountId = account.id;
-  await artist.save();
+    const account = await stripe.v2.core.accounts.create({
+      contact_email: artist.email || undefined,
+      display_name: displayName,
+      dashboard: 'express',
+      identity: {
+        country
+      },
+      defaults: {
+        responsibilities: {
+          fees_collector: 'application',
+          losses_collector: 'application'
+        }
+      },
+      configuration: {
+        recipient: {
+          capabilities: {
+            stripe_balance: {
+              stripe_transfers: {
+                requested: true
+              }
+            }
+          }
+        }
+      },
+      metadata: {
+        glamhubArtistId: artist._id.toString(),
+        glamhubUsername: artist.username
+      },
+      include: ACCOUNT_INCLUDES
+    });
 
-  return { success: true, accountId: account.id };
+    artist.stripeAccountId = account.id;
+    await artist.save();
+
+    return { success: true, accountId: account.id };
+  } catch (error) {
+    console.error('Stripe Connect account create error:', error);
+    return {
+      success: false,
+      error: getStripeErrorMessage(error)
+    };
+  }
 };
 
 const createAccountOnboardingLink = async (artist, returnUrl, refreshUrl) => {
@@ -130,18 +217,49 @@ const createAccountOnboardingLink = async (artist, returnUrl, refreshUrl) => {
     return accountResult;
   }
 
-  const accountLink = await stripe.accountLinks.create({
-    account: accountResult.accountId,
-    refresh_url: refreshUrl,
-    return_url: returnUrl,
-    type: 'account_onboarding'
-  });
+  try {
+    const accountLink = await stripe.v2.core.accountLinks.create({
+      account: accountResult.accountId,
+      use_case: {
+        type: 'account_onboarding',
+        account_onboarding: {
+          configurations: ['recipient'],
+          collection_options: {
+            fields: 'eventually_due'
+          },
+          return_url: returnUrl,
+          refresh_url: refreshUrl
+        }
+      }
+    });
 
-  return {
-    success: true,
-    url: accountLink.url,
-    accountId: accountResult.accountId
-  };
+    return {
+      success: true,
+      url: accountLink.url,
+      accountId: accountResult.accountId
+    };
+  } catch (error) {
+    console.error('Stripe Connect account link error:', error);
+    // Fallback to v1 Account Links if v2 links are unavailable
+    try {
+      const legacyLink = await stripe.accountLinks.create({
+        account: accountResult.accountId,
+        refresh_url: refreshUrl,
+        return_url: returnUrl,
+        type: 'account_onboarding'
+      });
+      return {
+        success: true,
+        url: legacyLink.url,
+        accountId: accountResult.accountId
+      };
+    } catch (legacyError) {
+      return {
+        success: false,
+        error: getStripeErrorMessage(error) || getStripeErrorMessage(legacyError)
+      };
+    }
+  }
 };
 
 const createDashboardLoginLink = async (artist) => {
@@ -153,8 +271,12 @@ const createDashboardLoginLink = async (artist) => {
     return { success: false, error: 'No Stripe Connect account found. Complete payout setup first.' };
   }
 
-  const loginLink = await stripe.accounts.createLoginLink(artist.stripeAccountId);
-  return { success: true, url: loginLink.url };
+  try {
+    const loginLink = await stripe.accounts.createLoginLink(artist.stripeAccountId);
+    return { success: true, url: loginLink.url };
+  } catch (error) {
+    return { success: false, error: getStripeErrorMessage(error) };
+  }
 };
 
 const releaseArtistPayout = async (appointment, artist) => {
@@ -244,7 +366,7 @@ const syncArtistByStripeAccountId = async (stripeAccountId) => {
     return null;
   }
 
-  const account = await stripe.accounts.retrieve(stripeAccountId);
+  const account = await retrieveConnectAccount(stripeAccountId);
   await syncArtistFromStripeAccount(artist, account);
   return artist;
 };
