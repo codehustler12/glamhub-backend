@@ -30,6 +30,21 @@ exports.registerValidator = [
     .isEmail()
     .withMessage('Please provide a valid email')
     .normalizeEmail(),
+
+  body('phone')
+    .optional({ checkFalsy: true })
+    .trim()
+    .custom((value) => {
+      const cleaned = String(value).replace(/[\s+\-()]/g, '');
+      if (!/^[0-9]{10,15}$/.test(cleaned)) {
+        throw new Error('Please provide a valid phone number (10-15 digits)');
+      }
+      return true;
+    }),
+
+  body('countryCode')
+    .optional({ checkFalsy: true })
+    .trim(),
   
   body('password')
     .notEmpty()

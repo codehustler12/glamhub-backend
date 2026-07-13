@@ -1,6 +1,8 @@
 const User = require('../models/User');
 const { validationResult } = require('express-validator');
 const sendToken = require('../utils/sendToken');
+const { isPhoneAlreadyRegistered } = require('../utils/phoneUtils');
+const { formatPhoneNumber } = require('../services/smsService');
 
 // @desc    Register a new user
 // @route   POST /api/auth/register
@@ -22,6 +24,8 @@ exports.register = async (req, res, next) => {
       lastName, 
       username, 
       email,
+      phone,
+      countryCode,
       password, 
       role,
       agreeToPrivacyPolicy 
@@ -47,6 +51,22 @@ exports.register = async (req, res, next) => {
       }
     }
 
+    // Check if phone already exists (user or artist)
+    let normalizedPhone = '';
+    if (phone && String(phone).trim()) {
+      const code = countryCode || '+971';
+      normalizedPhone = formatPhoneNumber(phone, code);
+
+      const phoneTaken = await isPhoneAlreadyRegistered(phone, code);
+      if (phoneTaken) {
+        return res.status(400).json({
+          success: false,
+          message: 'Phone number already registered',
+          code: 'PHONE_ALREADY_REGISTERED'
+        });
+      }
+    }
+
     // Create user
     const userData = {
       firstName,
@@ -57,6 +77,10 @@ exports.register = async (req, res, next) => {
       role: role || 'user',
       agreeToPrivacyPolicy: agreeToPrivacyPolicy || false
     };
+
+    if (normalizedPhone) {
+      userData.phone = normalizedPhone;
+    }
 
     // Set approval status: artists need approval, others are auto-approved
     if (role === 'artist') {
@@ -253,6 +277,24 @@ exports.updateProfile = async (req, res, next) => {
           success: false,
           message: 'Username is already taken'
         });
+      }
+    }
+
+    // Check if phone is being updated and already used by another user/artist
+    if (req.body.phone !== undefined && String(req.body.phone).trim()) {
+      const code = req.body.countryCode || '+971';
+      const phoneTaken = await isPhoneAlreadyRegistered(req.body.phone, code, req.user.id);
+      if (phoneTaken) {
+        return res.status(400).json({
+          success: false,
+          message: 'Phone number already registered',
+          code: 'PHONE_ALREADY_REGISTERED'
+        });
+      }
+      try {
+        req.body.phone = formatPhoneNumber(req.body.phone, code);
+      } catch (_) {
+        // keep provided phone
       }
     }
 
