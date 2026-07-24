@@ -271,71 +271,126 @@ const createConnectAccount = async (artist) => {
   }
 };
 
+const createAccountLinkUrl = async (accountId, returnUrl, refreshUrl, preferUpdate = false) => {
+  const v2Types = preferUpdate
+    ? ['account_update', 'account_onboarding']
+    : ['account_onboarding', 'account_update'];
+
+  let lastError = null;
+
+  for (const linkType of v2Types) {
+    try {
+      const accountLink = await stripe.v2.core.accountLinks.create({
+        account: accountId,
+        use_case: {
+          type: linkType,
+          [linkType]: {
+            configurations: ['recipient'],
+            collection_options: {
+              fields: 'eventually_due'
+            },
+            return_url: returnUrl,
+            refresh_url: refreshUrl
+          }
+        }
+      });
+      return { success: true, url: accountLink.url, accountId };
+    } catch (error) {
+      lastError = error;
+      console.warn(`Stripe v2 account link (${linkType}) failed:`, getStripeErrorMessage(error));
+    }
+  }
+
+  // Fallback to v1 Account Links
+  const v1Types = preferUpdate
+    ? ['account_update', 'account_onboarding']
+    : ['account_onboarding', 'account_update'];
+
+  for (const type of v1Types) {
+    try {
+      const legacyLink = await stripe.accountLinks.create({
+        account: accountId,
+        refresh_url: refreshUrl,
+        return_url: returnUrl,
+        type
+      });
+      return { success: true, url: legacyLink.url, accountId };
+    } catch (error) {
+      lastError = error;
+      console.warn(`Stripe v1 account link (${type}) failed:`, getStripeErrorMessage(error));
+    }
+  }
+
+  return {
+    success: false,
+    error: getStripeErrorMessage(lastError) || 'Could not create Stripe onboarding link'
+  };
+};
+
 const createAccountOnboardingLink = async (artist, returnUrl, refreshUrl) => {
   const accountResult = await createConnectAccount(artist);
   if (!accountResult.success) {
     return accountResult;
   }
 
-  try {
-    const accountLink = await stripe.v2.core.accountLinks.create({
-      account: accountResult.accountId,
-      use_case: {
-        type: 'account_onboarding',
-        account_onboarding: {
-          configurations: ['recipient'],
-          collection_options: {
-            fields: 'eventually_due'
-          },
-          return_url: returnUrl,
-          refresh_url: refreshUrl
-        }
-      }
-    });
-
-    return {
-      success: true,
-      url: accountLink.url,
-      accountId: accountResult.accountId
-    };
-  } catch (error) {
-    console.error('Stripe Connect account link error:', error);
-    // Fallback to v1 Account Links if v2 links are unavailable
-    try {
-      const legacyLink = await stripe.accountLinks.create({
-        account: accountResult.accountId,
-        refresh_url: refreshUrl,
-        return_url: returnUrl,
-        type: 'account_onboarding'
-      });
-      return {
-        success: true,
-        url: legacyLink.url,
-        accountId: accountResult.accountId
-      };
-    } catch (legacyError) {
-      return {
-        success: false,
-        error: getStripeErrorMessage(error) || getStripeErrorMessage(legacyError)
-      };
-    }
-  }
+  return createAccountLinkUrl(accountResult.accountId, returnUrl, refreshUrl, false);
 };
 
-const createDashboardLoginLink = async (artist) => {
+/**
+ * Express Dashboard login link.
+ * If onboarding is incomplete, falls back to Account Link so artist can finish bank setup.
+ */
+const createDashboardLoginLink = async (artist, returnUrl, refreshUrl) => {
   if (!isStripeConfigured()) {
     return { success: false, error: 'Stripe is not configured' };
   }
 
   if (!artist.stripeAccountId) {
-    return { success: false, error: 'No Stripe Connect account found. Complete payout setup first.' };
+    return {
+      success: false,
+      error: 'No Stripe Connect account found. Complete payout setup first.',
+      code: 'NO_CONNECT_ACCOUNT'
+    };
   }
 
+  // Prefer Express dashboard when onboarding is complete
   try {
     const loginLink = await stripe.accounts.createLoginLink(artist.stripeAccountId);
-    return { success: true, url: loginLink.url };
-  } catch (error) {
-    return { success: false, error: getStripeErrorMessage(error) };
+    return { success: true, url: loginLink.url, type: 'dashboard' };
+  } catch (loginError) {
+    console.warn('Stripe login link failed, trying onboarding/update link:', getStripeErrorMessage(loginError));
+
+    if (!returnUrl || !refreshUrl) {
+      return {
+        success: false,
+        error:
+          'Payout setup is not complete yet. Use “Complete bank setup” to finish Stripe onboarding before managing your payout account.',
+        code: 'ONBOARDING_INCOMPLETE',
+        detail: getStripeErrorMessage(loginError)
+      };
+    }
+
+    const linkResult = await createAccountLinkUrl(
+      artist.stripeAccountId,
+      returnUrl,
+      refreshUrl,
+      true
+    );
+
+    if (!linkResult.success) {
+      return {
+        success: false,
+        error: linkResult.error || getStripeErrorMessage(loginError),
+        code: 'DASHBOARD_LINK_FAILED'
+      };
+    }
+
+    return {
+      success: true,
+      url: linkResult.url,
+      type: 'onboarding',
+      message: 'Redirecting to Stripe to complete or update payout setup'
+    };
   }
 };
 

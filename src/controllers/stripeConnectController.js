@@ -75,7 +75,7 @@ exports.startConnectOnboarding = async (req, res, next) => {
   }
 };
 
-// @desc    Get Stripe Express dashboard login link
+// @desc    Get Stripe Express dashboard login link (or onboarding link if incomplete)
 // @route   POST /api/artist/stripe/dashboard-link
 // @access  Private (Artist only)
 exports.getDashboardLink = async (req, res, next) => {
@@ -87,20 +87,25 @@ exports.getDashboardLink = async (req, res, next) => {
       });
     }
 
+    const { returnUrl, refreshUrl } = req.body || {};
     const artist = await User.findById(req.user.id);
-    const result = await createDashboardLoginLink(artist);
+    const result = await createDashboardLoginLink(artist, returnUrl, refreshUrl);
 
     if (!result.success) {
       return res.status(400).json({
         success: false,
-        message: result.error || 'Could not create dashboard link'
+        message: result.error || 'Could not create dashboard link',
+        code: result.code || 'DASHBOARD_LINK_FAILED',
+        detail: result.detail
       });
     }
 
     res.status(200).json({
       success: true,
+      message: result.message || 'Stripe dashboard link created',
       data: {
-        url: result.url
+        url: result.url,
+        type: result.type || 'dashboard'
       }
     });
   } catch (error) {
